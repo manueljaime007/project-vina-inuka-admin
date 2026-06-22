@@ -1,54 +1,56 @@
-export interface Categoria {
+export interface Category {
     id: string;
-    nome: string;
-    descricao: string;
+    name: string;
+    description: string;
     created_at: string;
     updated_at: string;
 }
 
-export interface Produto {
+export interface Product {
     id: string;
-    nome: string;
-    descricao: string;
-    preco: number;
-    quantidade_estoque: number;
-    categoria_id: string;
-    ativo: boolean;
-    imagem_url: string;
+    name: string;
+    description: string;
+    price: number;
+    stock: number;
+    category_id: string;
+    image_url: string;
+    active: boolean;
     created_at: string;
     updated_at: string;
+    deleted_at: string | null;
 }
 
-export interface Solicitacao {
+export interface Request {
     id: string;
-    cliente_nome: string;
-    cliente_telefone: string;
-    cliente_email?: string;
-    produtos: Array<{
-        produto_id: string;
-        quantidade: number;
-        preco_unitario: number;
+    customer_name: string;
+    customer_phone: string;
+    products: Array<{
+        product_id: string;
+        name: string;
+        quantity: number;
+        price: number;
     }>;
     total: number;
-    status: 'pendente' | 'entregue' | 'cancelada';
-    mensagem_whatsapp: string;
+    status: 'pending' | 'completed' | 'cancelled';
     created_at: string;
     updated_at: string;
+    deleted_at: string | null;
 }
 
-export interface AdminUser {
+export interface Admin {
     id: string;
-    google_id: string;
     email: string;
-    nome: string;
-    imagem_perfil?: string;
+    password: string;
+    name: string;
+    avatar_url: string | null;
     created_at: string;
-    last_login: string;
+    last_login: string | null;
 }
 
 export interface JWTPayload {
     sub: string;
     email: string;
+    name: string;
     iat: number;
     exp: number;
 }

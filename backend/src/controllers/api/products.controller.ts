@@ -3,13 +3,18 @@ import { supabase } from '../../config/supabase';
 import { uploadToCloudinary } from '../../utils/cloudinary-upload';
 import { Produto } from '../../types';
 
-// GET todos os produtos (público)
-export const getProdutos = async (req: Request, res: Response) => {
+export const getProducts = async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
-            .from('produtos')
-            .select('*, categorias_produtos(nome)')
-            .eq('ativo', true);
+            .from('products')
+            .select(`
+                *,
+                categories (
+                    name
+                )
+            `)
+            .eq('active', true)
+            .is('deleted_at', null);
 
         if (error) throw error;
 
@@ -19,15 +24,20 @@ export const getProdutos = async (req: Request, res: Response) => {
     }
 };
 
-// GET um produto específico (público)
-export const getProdutoById = async (req: Request, res: Response) => {
+export const getProductById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
         const { data, error } = await supabase
-            .from('produtos')
-            .select('*, categorias_produtos(nome)')
+            .from('products')
+            .select(`
+                *,
+                categories (
+                    name
+                )
+            `)
             .eq('id', id)
+            .is('deleted_at', null)
             .single();
 
         if (error) throw error;
@@ -38,30 +48,39 @@ export const getProdutoById = async (req: Request, res: Response) => {
     }
 };
 
-// POST criar produto (admin)
-export const createProduto = async (req: Request, res: Response) => {
+export const createProduct = async (req: Request, res: Response) => {
     try {
-        const { nome, descricao, preco, quantidade_estoque, categoria_id, ativo } = req.body;
+        const {
+            name,
+            description,
+            price,
+            stock,
+            category_id,
+            active
+        } = req.body;
+
         const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: 'Imagem é obrigatória' });
         }
 
-        // Upload para Cloudinary
-        const imagemUrl = await uploadToCloudinary(file.buffer, file.originalname);
+        const imageUrl = await uploadToCloudinary(
+            file.buffer,
+            file.originalname
+        );
 
         const { data, error } = await supabase
-            .from('produtos')
+            .from('products')
             .insert([
                 {
-                    nome,
-                    descricao,
-                    preco: parseFloat(preco),
-                    quantidade_estoque: parseInt(quantidade_estoque),
-                    categoria_id,
-                    ativo: ativo !== 'false',
-                    imagem_url: imagemUrl,
+                    name,
+                    description,
+                    price: parseFloat(price),
+                    stock: parseInt(stock),
+                    category_id,
+                    active: active !== 'false',
+                    image_url: imageUrl,
                 },
             ])
             .select();
@@ -70,35 +89,52 @@ export const createProduto = async (req: Request, res: Response) => {
 
         res.status(201).json(data[0]);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro ao criar produto' });
     }
 };
 
-// PUT atualizar produto (admin)
-export const updateProduto = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { nome, descricao, preco, quantidade_estoque, categoria_id, ativo } = req.body;
+        const {
+            name,
+            description,
+            price,
+            stock,
+            category_id,
+            active
+        } = req.body;
         const file = req.file;
 
+        const { data: existingProduct, error: checkError } = await supabase
+            .from('products')
+            .select('id')
+            .eq('id', id)
+            .is('deleted_at', null)
+            .single();
+
+        if (checkError || !existingProduct) {
+            return res.status(404).json({ error: 'Produto não encontrado' });
+        }
+
         let updateData: any = {
-            nome,
-            descricao,
-            preco: parseFloat(preco),
-            quantidade_estoque: parseInt(quantidade_estoque),
-            categoria_id,
-            ativo: ativo !== 'false',
+            name,
+            description,
+            price: parseFloat(price),
+            stock: parseInt(stock),
+            category_id,
+            active: active !== 'false',
             updated_at: new Date().toISOString(),
         };
 
-        // Se houver imagem nova, fazer upload
         if (file) {
-            const imagemUrl = await uploadToCloudinary(file.buffer, file.originalname);
-            updateData.imagem_url = imagemUrl;
+            const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
+            updateData.image_url = imageUrl;
         }
 
         const { data, error } = await supabase
-            .from('produtos')
+            .from('products')
             .update(updateData)
             .eq('id', id)
             .select();
@@ -107,21 +143,84 @@ export const updateProduto = async (req: Request, res: Response) => {
 
         res.json(data[0]);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro ao atualizar produto' });
     }
 };
 
-// DELETE produto (admin)
-export const deleteProduto = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        const { error } = await supabase.from('produtos').delete().eq('id', id);
+        const { data, error } = await supabase
+            .from('products')
+            .update({
+                deleted_at: new Date().toISOString(),
+                active: false,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .is('deleted_at', null)
+            .select();
 
         if (error) throw error;
 
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado' });
+        }
+
         res.json({ message: 'Produto deletado com sucesso' });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro ao deletar produto' });
+    }
+};
+
+export const restoreProduct = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabase
+            .from('products')
+            .update({
+                deleted_at: null,
+                active: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .not('deleted_at', 'is', null)
+            .select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado ou já está ativo' });
+        }
+
+        res.json({ message: 'Produto restaurado com sucesso' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao restaurar produto' });
+    }
+};
+
+export const getDeletedProducts = async (req: Request, res: Response) => {
+    try {
+        const { data, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                categories (
+                    name
+                )
+            `)
+            .not('deleted_at', 'is', null);
+
+        if (error) throw error;
+
+        res.json(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar produtos deletados' });
     }
 };
