@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
 import {
-    createSolicitacao,
-    getSolicitacoes,
-    getSolicitacaoById,
-    updateSolicitacaoStatus,
-} from '../../controllers/api/requests.controller';
+    createRequest,
+    getRequests,
+    getRequestById,
+    updateRequestStatus
+} from '@/controllers/api/requests.controller'
 
 const router = Router();
 
 // Rota pública (criar solicitação)
-router.post('/', createSolicitacao);
+router.post('/', createRequest);
 
 // Rotas protegidas (admin)
-router.get('/', authMiddleware, getSolicitacoes);
-router.get('/:id', authMiddleware, getSolicitacaoById);
-router.put('/:id/status', authMiddleware, updateSolicitacaoStatus);
+router.get('/', authMiddleware, getRequests);
+router.get('/:id', authMiddleware, getRequestById);
+router.put('/:id/status', authMiddleware, updateRequestStatus);
 
 export default router;

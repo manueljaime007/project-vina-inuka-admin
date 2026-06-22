@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
 import {
-    getCategorias,
-    createCategoria,
-    updateCategoria,
-    deleteCategoria,
-} from '../../controllers/api/categories.controller';
+    getCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+} from '@/controllers/api/categories.controller';
 
 const router = Router();
 
 // Rotas públicas
-router.get('/', getCategorias);
+router.get('/', getCategories);
 
 // Rotas protegidas (admin)
-router.post('/', authMiddleware, createCategoria);
-router.put('/:id', authMiddleware, updateCategoria);
-router.delete('/:id', authMiddleware, deleteCategoria);
+router.post('/', authMiddleware, createCategory);
+router.put('/:id', authMiddleware, updateCategory);
+router.delete('/:id', authMiddleware, deleteCategory);
 
 export default router;
