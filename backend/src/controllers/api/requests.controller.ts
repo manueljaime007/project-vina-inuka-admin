@@ -11,8 +11,8 @@ export const createRequest = async (req: Request, res: Response) => {
         } = req.body;
 
         if (!customer_name || !customer_phone || !products || !total) {
-            return res.status(400).json({ 
-                error: 'Todos os campos são obrigatórios' 
+            return res.status(400).json({
+                error: 'Todos os campos são obrigatórios'
             });
         }
 
@@ -38,22 +38,83 @@ export const createRequest = async (req: Request, res: Response) => {
     }
 };
 
+
 export const getRequests = async (req: Request, res: Response) => {
     try {
-        const { data, error } = await supabase
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'created_at',
+            sortOrder = 'desc',
+            status,
+            startDate,
+            endDate
+        } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 10));
+        const offset = (pageNum - 1) * limitNum;
+
+        let query = supabase
             .from('requests')
-            .select('*')
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' });
+
+        query = query.is('deleted_at', null);
+
+        if (status) {
+            query = query.eq('status', status);
+        }
+
+        if (startDate) {
+            query = query.gte('created_at', startDate);
+        }
+
+        if (endDate) {
+            query = query.lte('created_at', endDate);
+        }
+
+        const validSortFields = ['customer_name', 'total', 'status', 'created_at'];
+        const sortField = validSortFields.includes(sortBy as string) ? sortBy : 'created_at';
+        const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
+        query = query.order(sortField as string, { ascending: sortDir === 'asc' });
+
+        query = query.range(offset, offset + limitNum - 1);
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
-        res.json(data);
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limitNum);
+
+        res.json({
+            data: data || [],
+            meta: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages,
+                hasNext: pageNum < totalPages,
+                hasPrev: pageNum > 1
+            },
+            filters: {
+                status: status || null,
+                startDate: startDate || null,
+                endDate: endDate || null
+            },
+            sort: {
+                sortBy: sortField,
+                sortOrder: sortDir
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Erro ao buscar solicitações' });
     }
 };
+
+
+
 
 export const getRequestById = async (req: Request, res: Response) => {
     try {
@@ -79,6 +140,10 @@ export const updateRequestStatus = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({ error: 'Dados da requisição são obrigatórios' });
+        }
 
         if (!status || !['pending', 'completed', 'cancelled'].includes(status)) {
             return res.status(400).json({ error: 'Status inválido' });

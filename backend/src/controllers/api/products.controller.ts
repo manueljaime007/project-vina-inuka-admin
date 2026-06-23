@@ -1,28 +1,107 @@
 import { Request, Response } from 'express';
 import { supabase } from '../../config/supabase';
 import { uploadToCloudinary } from '../../utils/cloudinary-upload';
-import { Produto } from '../../types';
+
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
-        const { data, error } = await supabase
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'created_at',
+            sortOrder = 'desc',
+            search = '',
+            category_id,
+            minPrice,
+            maxPrice,
+            active
+        } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 10));
+        const offset = (pageNum - 1) * limitNum;
+
+        let query = supabase
             .from('products')
             .select(`
                 *,
                 categories (
                     name
                 )
-            `)
-            .eq('active', true)
-            .is('deleted_at', null);
+            `, { count: 'exact' });
+
+        // Sempre filtrar produtos não deletados
+        query = query.is('deleted_at', null);
+
+        // Aplicar filtro active SOMENTE se for fornecido
+        if (active !== undefined) {
+            const activeValue = active === 'true' || active === '1';
+            query = query.eq('active', activeValue);
+            console.log('Filtro active aplicado:', activeValue); // Debug
+        }
+
+        if (category_id) {
+            query = query.eq('category_id', category_id);
+        }
+
+        if (minPrice) {
+            query = query.gte('price', parseFloat(minPrice as string));
+        }
+
+        if (maxPrice) {
+            query = query.lte('price', parseFloat(maxPrice as string));
+        }
+
+        if (search) {
+            query = query.ilike('name', `%${search}%`);
+        }
+
+        const validSortFields = ['name', 'price', 'stock', 'created_at', 'updated_at'];
+        const sortField = validSortFields.includes(sortBy as string) ? sortBy : 'created_at';
+        const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
+        query = query.order(sortField as string, { ascending: sortDir === 'asc' });
+
+        query = query.range(offset, offset + limitNum - 1);
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
-        res.json(data);
+        console.log('Total encontrado:', count); // Debug
+        console.log('Dados retornados:', data?.length); // Debug
+
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limitNum);
+
+        res.json({
+            data: data || [],
+            meta: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages,
+                hasNext: pageNum < totalPages,
+                hasPrev: pageNum > 1
+            },
+            filters: {
+                category_id: category_id || null,
+                minPrice: minPrice || null,
+                maxPrice: maxPrice || null,
+                active: active !== undefined ? active : null,
+                search: search || null
+            },
+            sort: {
+                sortBy: sortField,
+                sortOrder: sortDir
+            }
+        });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro ao buscar produtos' });
     }
 };
+
+
 
 export const getProductById = async (req: Request, res: Response) => {
     try {
@@ -97,37 +176,33 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const {
-            name,
-            description,
-            price,
-            stock,
-            category_id,
-            active
-        } = req.body;
+        const { name, description, price, stock, category_id, active } = req.body;
         const file = req.file;
 
-        const { data: existingProduct, error: checkError } = await supabase
+        // Buscar o produto existente
+        const { data: existingProduct, error: findError } = await supabase
             .from('products')
-            .select('id')
+            .select('*')
             .eq('id', id)
             .is('deleted_at', null)
             .single();
 
-        if (checkError || !existingProduct) {
+        if (findError || !existingProduct) {
             return res.status(404).json({ error: 'Produto não encontrado' });
         }
 
+        // Mesclar os dados existentes com os novos
         let updateData: any = {
-            name,
-            description,
-            price: parseFloat(price),
-            stock: parseInt(stock),
-            category_id,
-            active: active !== 'false',
+            name: name ?? existingProduct.name,
+            description: description !== undefined ? description : existingProduct.description,
+            price: price !== undefined ? parseFloat(price) : existingProduct.price,
+            stock: stock !== undefined ? parseInt(stock) : existingProduct.stock,
+            category_id: category_id ?? existingProduct.category_id,
+            active: active !== undefined ? active !== 'false' : existingProduct.active,
             updated_at: new Date().toISOString(),
         };
 
+        // Se houver imagem nova, fazer upload
         if (file) {
             const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
             updateData.image_url = imageUrl;
@@ -221,6 +296,35 @@ export const getDeletedProducts = async (req: Request, res: Response) => {
         res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Erro ao buscar produtos deletados' });
+        res.status(500).json({
+            error: 'Erro ao buscar produtos deletados'
+        });
     }
 };
+
+export const deletePermanently = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', id)
+            .is('deleted_at', null)
+            .select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado' });
+        }
+
+        res.json({ message: 'Produto deletado permanentemente com sucesso' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: 'Erro ao deletar produto permanentemente'
+        });
+    }
+}

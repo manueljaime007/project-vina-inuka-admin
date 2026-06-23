@@ -1,16 +1,61 @@
 import { Request, Response } from 'express';
 import { supabase } from '@/config/supabase';
 
+
 export const getCategories = async (req: Request, res: Response) => {
     try {
-        const { data, error } = await supabase
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'name',
+            sortOrder = 'asc',
+            search = ''
+        } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 10));
+        const offset = (pageNum - 1) * limitNum;
+
+        let query = supabase
             .from('categories')
-            .select('*')
-            .order('name', { ascending: true });
+            .select('*', { count: 'exact' });
+
+        if (search) {
+            query = query.ilike('name', `%${search}%`);
+        }
+
+        const validSortFields = ['name', 'created_at', 'updated_at'];
+        const sortField = validSortFields.includes(sortBy as string) ? sortBy : 'name';
+        const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
+        query = query.order(sortField as string, { ascending: sortDir === 'asc' });
+
+        query = query.range(offset, offset + limitNum - 1);
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
-        res.json(data);
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limitNum);
+
+        res.json({
+            data: data || [],
+            meta: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages,
+                hasNext: pageNum < totalPages,
+                hasPrev: pageNum > 1
+            },
+            filters: {
+                search: search || null
+            },
+            sort: {
+                sortBy: sortField,
+                sortOrder: sortDir
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Erro ao buscar categorias' });
@@ -68,13 +113,13 @@ export const updateCategory = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { name, description } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ error: 'Nome é obrigatório' });
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({ error: 'Dados da requisição são obrigatórios' });
         }
 
         const { data: existingCategory, error: checkError } = await supabase
             .from('categories')
-            .select('id')
+            .select('*')
             .eq('id', id)
             .single();
 
@@ -82,13 +127,16 @@ export const updateCategory = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Categoria não encontrada' });
         }
 
+        let updateData: any = {
+            updated_at: new Date().toISOString()
+        };
+
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+
         const { data, error } = await supabase
             .from('categories')
-            .update({
-                name,
-                description,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
             .select();
 
