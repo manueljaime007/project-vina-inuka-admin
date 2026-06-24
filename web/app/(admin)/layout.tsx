@@ -14,7 +14,6 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false);
 
   const toggleSidebar = () => setCollapsed((prev) => !prev);
-
   return (
     <ToastProvider>
       <div className="flex min-h-screen w-full">
