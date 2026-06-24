@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-110 animate-scale-in rounded-[28px] border border-line-soft bg-surface p-10 shadow-(--shadow-pop)">
         <div className="mb-8">
           <h1 className="font-display text-[28px] leading-tight text-ink">
-            Aurélie<span className="text-brand-rose-deep">.</span>{" "}
+            Vina Inuka<span className="text-brand-rose-deep">.</span>{" "}
             <span className="text-ink-soft">Admin</span>
           </h1>
           <p className="mt-2 text-[14px] text-ink-soft">
