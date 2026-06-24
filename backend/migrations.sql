@@ -2,8 +2,8 @@
 
 CREATE TABLE admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-    google_id VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,7 +32,8 @@ CREATE TABLE products (
     image_url TEXT NOT NULL,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP 
 );
 
 -- Tabela de pedidos
@@ -51,7 +52,8 @@ CREATE TABLE requests (
         )
     ),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 );
 
 -- Índices
@@ -63,3 +65,5 @@ CREATE INDEX idx_products_active ON products (active);
 CREATE INDEX idx_requests_status ON requests (status);
 
 CREATE INDEX idx_requests_created_at ON requests (created_at);
+
+CREATE INDEX idx_admins_email ON admins (email);
