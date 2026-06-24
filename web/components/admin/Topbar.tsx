@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface TopbarProps {
   title?: string;

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Search, Inbox } from "lucide-react";
-import { clientRequests as initialRequests } from "@/shared/lib/mock-data";
+import { clientRequests as initialRequests } from "@/shared/data/mock-data";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
-import { formatCurrencyKz, formatDateTime } from "@/shared/lib/utils";
+import { formatCurrencyKz, formatDateTime } from "@/shared/helpers/utils";
 import { DeleteRequestModal } from "@/components/requests/DeleteRequestModal";
 import { BulkActionsBar } from "@/components/ui/BulkActionsBar";
 

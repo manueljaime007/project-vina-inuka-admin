@@ -6,7 +6,7 @@ import { Search, Plus, Tag, LayoutGrid, List, PackageX } from "lucide-react";
 import {
   categories as initialCategories,
   products as initialProducts,
-} from "@/shared/lib/mock-data";
+} from "@/shared/data/mock-data";
 import { Product } from "@/shared/types";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -20,7 +20,7 @@ import { BulkActionsBar } from "@/components/ui/BulkActionsBar";
 import { EditProductModal } from "@/components/products/EditProductModal";
 import { DeleteProductModal } from "@/components/products/DeleteProductModal";
 import { NewCategoryModal } from "@/components/products/NewCategoryModal";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 const PAGE_SIZE = 8;
 

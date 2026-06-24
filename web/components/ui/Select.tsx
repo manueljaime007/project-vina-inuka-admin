@@ -1,6 +1,6 @@
 import { SelectHTMLAttributes, forwardRef } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 import { FieldShell } from "./Input";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {

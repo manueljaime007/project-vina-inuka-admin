@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, ReactNode } from "react";
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface Toast {
   id: number;

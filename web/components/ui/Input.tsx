@@ -4,7 +4,7 @@ import {
   TextareaHTMLAttributes,
   ReactNode,
 } from "react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface FieldShellProps {
   label?: string;

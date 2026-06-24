@@ -2,7 +2,7 @@
 
 import { InputHTMLAttributes, forwardRef } from "react";
 import { Check, Minus } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface CheckboxProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { Topbar } from "@/components/admin/Topbar";
 import { ToastProvider } from "@/components/ui/Toast";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 export default function AdminLayout({
   children,

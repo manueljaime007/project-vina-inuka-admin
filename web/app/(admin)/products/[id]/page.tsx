@@ -4,12 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, PackageX } from "lucide-react";
-import { products } from "@/shared/lib/mock-data";
+import { products } from "@/shared/data/mock-data";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
-import { formatCurrencyKz, formatDate } from "@/shared/lib/utils";
+import { formatCurrencyKz, formatDate } from "@/shared/helpers/utils";
 import { EditProductModal } from "@/components/products/EditProductModal";
 import { DeleteProductModal } from "@/components/products/DeleteProductModal";
 
@@ -109,7 +109,7 @@ export default function ProductDetailsPage() {
               value={`${formatCurrencyKz(product.price)} Kz`}
             />
             <Detail label="Stock" value={`${product.stock} unid.`} />
-            <Detail label="Marca" value={product.brand} />
+            {/* <Detail label="Marca" value={product.brand} /> */}
             <Detail label="Categoria" value={product.categoryName} />
           </div>
 

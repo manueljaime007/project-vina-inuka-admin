@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, Tag } from "lucide-react";
 import {
   categories as initialCategories,
   products,
-} from "@/shared/lib/mock-data";
+} from "@/shared/data/mock-data";
 import { Category } from "@/shared/types";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";

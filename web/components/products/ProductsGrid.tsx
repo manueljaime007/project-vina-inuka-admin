@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Package } from "lucide-react";
 import { Product } from "@/shared/types";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrencyKz } from "@/shared/lib/utils";
-import { cn } from "@/shared/lib/utils";
+import { formatCurrencyKz } from "@/shared/helpers/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface ProductsGridProps {
   products: Product[];
@@ -27,6 +27,9 @@ export function ProductsGrid({
     <div className="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {products.map((product) => {
         const checked = selectedIds.has(product.id);
+        const isLowStock = product.stock <= 5;
+        const isOutOfStock = product.stock === 0;
+
         return (
           <div
             key={product.id}
@@ -35,6 +38,7 @@ export function ProductsGrid({
               checked
                 ? "border-brand-navy shadow-[var(--shadow-card)]"
                 : "border-line-soft hover:shadow-[var(--shadow-card)]",
+              isOutOfStock && "opacity-70",
             )}
           >
             <div className="absolute left-3 top-3 z-10">
@@ -43,6 +47,23 @@ export function ProductsGrid({
                   checked={checked}
                   onChange={() => onToggle(product.id)}
                 />
+              </span>
+            </div>
+
+            {/* Stock badge no canto superior direito */}
+            <div className="absolute right-3 top-3 z-10">
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-sm",
+                  isOutOfStock
+                    ? "bg-danger-bg/90 text-danger"
+                    : isLowStock
+                      ? "bg-warning-bg/90 text-warning-ink"
+                      : "bg-success-bg/90 text-success-ink",
+                )}
+              >
+                <Package className="size-3" />
+                {product.stock}
               </span>
             </div>
 
@@ -64,7 +85,7 @@ export function ProductsGrid({
                     {product.name}
                   </p>
                   <p className="text-[12.5px] text-ink-faint">
-                    {product.brand} · {product.categoryName}
+                    {product.categoryName}
                   </p>
                 </Link>
                 <Badge

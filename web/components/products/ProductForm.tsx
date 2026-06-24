@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { categories } from "@/shared/lib/mock-data";
+import { categories } from "@/shared/data/mock-data";
 import { Product } from "@/shared/types";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -10,7 +10,6 @@ import { ImageUploadField } from "@/components/ui/ImageUploadField";
 export interface ProductFormValues {
   name: string;
   slug: string;
-  brand: "Vina Inuka" | "INUKA";
   categoryId: string;
   price: string;
   stock: string;
@@ -42,9 +41,6 @@ export function ProductForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
-  const [brand, setBrand] = useState<"Vina">(
-    initial?.brand ?? "Vina",
-  );
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [price, setPrice] = useState(initial?.price?.toString() ?? "");
   const [stock, setStock] = useState(initial?.stock?.toString() ?? "");
@@ -58,7 +54,6 @@ export function ProductForm({
     onValuesChange({
       name,
       slug,
-      brand,
       categoryId,
       price,
       stock,
@@ -111,18 +106,6 @@ export function ProductForm({
             }}
             className="sm:col-span-2"
           />
-          <Select
-            label="Marca"
-            value={brand}
-            onChange={(e) => {
-            //   setBrand(e.target.value as "Vina" | "INUKA");
-              setBrand(e.target.value as "Vina" );
-              emit({ brand: e.target.value as "Vina Inuka" | "INUKA" });
-            }}
-          >
-            <option value="Vina Inuka">Vina Inuka</option>
-            <option value="INUKA">INUKA</option>
-          </Select>
           <Select
             label="Categoria"
             value={categoryId}

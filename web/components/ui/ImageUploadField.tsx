@@ -2,7 +2,7 @@
 
 import { useRef, useState, DragEvent, ChangeEvent } from "react";
 import { ImagePlus, X, UploadCloud } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface ImageUploadFieldProps {
   label?: string;

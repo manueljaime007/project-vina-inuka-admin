@@ -3,7 +3,7 @@
 import { ReactNode, useEffect } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 interface ModalProps {
   open: boolean;

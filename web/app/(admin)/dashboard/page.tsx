@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Package, Tag, Inbox, TrendingUp } from "lucide-react";
-import { categories, clientRequests, products } from "@/shared/lib/mock-data";
-import { formatCurrencyKz, formatDateTime } from "@/shared/lib/utils";
+import { categories, clientRequests, products } from "@/shared/data/mock-data";
+import { formatCurrencyKz, formatDateTime } from "@/shared/helpers/utils";
 import { Badge } from "@/components/ui/Badge";
 
 const statusMeta = {

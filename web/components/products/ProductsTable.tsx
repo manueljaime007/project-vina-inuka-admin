@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product } from "@/shared/types";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrencyKz }  from "@/shared/lib/utils";
+import { cn, formatCurrencyKz } from "@/shared/helpers/utils";
 
 interface ProductsTableProps {
   products: Product[];
@@ -16,8 +16,16 @@ interface ProductsTableProps {
   onDelete: (product: Product) => void;
 }
 
-export function ProductsTable({ products, selectedIds, onToggle, onToggleAll, onEdit, onDelete }: ProductsTableProps) {
-  const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
+export function ProductsTable({
+  products,
+  selectedIds,
+  onToggle,
+  onToggleAll,
+  onEdit,
+  onDelete,
+}: ProductsTableProps) {
+  const allSelected =
+    products.length > 0 && products.every((p) => selectedIds.has(p.id));
   const someSelected = products.some((p) => selectedIds.has(p.id));
 
   return (
@@ -26,12 +34,16 @@ export function ProductsTable({ products, selectedIds, onToggle, onToggleAll, on
         <thead>
           <tr className="border-b border-line-soft text-left">
             <th className="w-12 py-3 pl-6">
-              <Checkbox checked={allSelected} indeterminate={someSelected && !allSelected} onChange={onToggleAll} />
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected && !allSelected}
+                onChange={onToggleAll}
+              />
             </th>
             <Th>Produto</Th>
-            <Th>Marca</Th>
             <Th>Categoria</Th>
             <Th>Preço</Th>
+            <Th>Stock</Th>
             <Th>Estado</Th>
             <Th className="text-right pr-6">Ações</Th>
           </tr>
@@ -47,10 +59,16 @@ export function ProductsTable({ products, selectedIds, onToggle, onToggleAll, on
                 }`}
               >
                 <td className="py-4 pl-6">
-                  <Checkbox checked={checked} onChange={() => onToggle(product.id)} />
+                  <Checkbox
+                    checked={checked}
+                    onChange={() => onToggle(product.id)}
+                  />
                 </td>
                 <td className="py-4 pr-4">
-                  <Link href={`/products/${product.id}`} className="flex items-center gap-3 group">
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="flex items-center gap-3 group"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={product.imageUrl}
@@ -58,18 +76,50 @@ export function ProductsTable({ products, selectedIds, onToggle, onToggleAll, on
                       className="size-11 rounded-xl object-cover bg-brand-blush"
                     />
                     <div>
-                      <p className="text-[14.5px] font-medium text-ink group-hover:underline">{product.name}</p>
-                      <p className="text-[12.5px] text-ink-faint">{product.slug}</p>
+                      <p className="text-[14.5px] font-medium text-ink group-hover:underline">
+                        {product.name}
+                      </p>
+                      <p className="text-[12.5px] text-ink-faint">
+                        {product.slug}
+                      </p>
                     </div>
                   </Link>
                 </td>
-                <td className="py-4 pr-4 text-[14px] text-ink-soft">{product.brand}</td>
-                <td className="py-4 pr-4 text-[14px] text-ink-soft">{product.categoryName}</td>
+                <td className="py-4 pr-4 text-[14px] text-ink-soft">
+                  {product.categoryName}
+                </td>
                 <td className="py-4 pr-4 text-[14px] font-medium text-ink">
                   {formatCurrencyKz(product.price)} Kz
                 </td>
                 <td className="py-4 pr-4">
-                  <Badge tone={product.status === "ativo" ? "success" : "neutral"}>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium",
+                      product.stock > 10
+                        ? "bg-success-bg text-success-ink"
+                        : product.stock > 0
+                          ? "bg-warning-bg text-warning-ink"
+                          : "bg-danger-bg text-danger",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        product.stock > 10
+                          ? "bg-success-ink"
+                          : product.stock > 0
+                            ? "bg-warning-ink"
+                            : "bg-danger",
+                      )}
+                    />
+                    {product.stock}{" "}
+                    {product.stock === 1 ? "unidade" : "unidades"}
+                  </span>
+                </td>
+                <td className="py-4 pr-4">
+                  <Badge
+                    tone={product.status === "ativo" ? "success" : "neutral"}
+                  >
                     {product.status === "ativo" ? "Ativo" : "Inativo"}
                   </Badge>
                 </td>
@@ -100,9 +150,17 @@ export function ProductsTable({ products, selectedIds, onToggle, onToggleAll, on
   );
 }
 
-function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Th({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <th className={`py-3 pr-4 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint ${className}`}>
+    <th
+      className={`py-3 pr-4 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-faint ${className}`}
+    >
       {children}
     </th>
   );

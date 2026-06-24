@@ -1,4 +1,4 @@
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/helpers/utils";
 
 type BadgeTone = "success" | "warning" | "danger" | "info" | "neutral";
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2, RotateCcw, AlertTriangle } from "lucide-react";
-import { trashedProducts as initialTrashed } from "@/shared/lib/mock-data";
+import { trashedProducts as initialTrashed } from "@/shared/data/mock-data";
 import { Product } from "@/shared/types";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Badge } from "@/components/ui/Badge";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
-import { formatCurrencyKz, formatDate } from "@/shared/lib/utils";
+import { formatCurrencyKz, formatDate } from "@/shared/helpers/utils";
 
 export default function TrashPage() {
   const { showToast } = useToast();
