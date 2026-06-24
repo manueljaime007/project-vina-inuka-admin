@@ -47,13 +47,24 @@ export default function DashboardPage() {
     },
   ];
 
+  const hours = new Date().getHours();
+
+  let greeting = "";
+
+  if (hours < 12) greeting = "Bom dia";
+  else if (hours < 18) greeting = "Boa tarde";
+  else greeting = "Boa noite";
+
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="font-display text-[34px] text-ink">Bom dia.</h1>
-        <p className="mt-1 text-[15px] text-ink-soft">
-          Visão geral da sua loja.
-        </p>
+        <div>
+          <h1 className="font-display text-[34px] text-ink">{greeting}!</h1>
+
+          <p className="mt-1 text-[15px] text-ink-soft">
+            Visão geral da sua loja.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
