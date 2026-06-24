@@ -12,7 +12,8 @@ import {
     deletePermanently,
     deleteManyProducts,
     restoreManyProducts,
-    deleteManyProductsPermanent
+    deleteManyProductsPermanent,
+    getProductBySlug
 } from '@/controllers/api/products.controller';
 
 const router = Router();
@@ -32,7 +33,8 @@ router.delete('/batch/permanent', authMiddleware, deleteManyProductsPermanent);
 
 // Rotas públicas (depois das específicas)
 router.get('/', getProducts);
-router.get('/:id', getProductById);
+// router.get('/:id', getProductById);
+router.get('/:slug', getProductBySlug);
 
 // Rotas protegidas com parâmetros (depois das específicas)
 router.post('/', authMiddleware, upload.single('image'), createProduct);

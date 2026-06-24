@@ -93,6 +93,30 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 };
 
+export const getProductBySlug = async (req: Request, res: Response) => {
+    try {
+        const { slug } = req.params;
+
+        const { data, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                categories (
+                    name
+                )
+            `)
+            .eq('slug', slug)
+            .is('deleted_at', null)
+            .single();
+
+        if (error) throw error;
+
+        res.json(data);
+    } catch (error) {
+        res.status(404).json({ error: 'Produto não encontrado' });
+    }
+};
+
 export const getProductById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -374,14 +398,14 @@ export const deleteManyProductsPermanent = async (req: Request, res: Response) =
         const { ids } = req.body;
 
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ 
-                error: 'Envie um array de IDs válido' 
+            return res.status(400).json({
+                error: 'Envie um array de IDs válido'
             });
         }
 
         if (ids.length > 100) {
-            return res.status(400).json({ 
-                error: 'Máximo de 100 produtos por vez' 
+            return res.status(400).json({
+                error: 'Máximo de 100 produtos por vez'
             });
         }
 
