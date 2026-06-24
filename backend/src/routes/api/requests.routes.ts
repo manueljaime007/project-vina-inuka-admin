@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middleware/auth';
+import { authMiddleware } from '@/middleware/auth';
 import {
     createRequest,
     getRequests,
@@ -9,10 +9,8 @@ import {
 
 const router = Router();
 
-// Rota pública (criar solicitação)
 router.post('/', createRequest);
 
-// Rotas protegidas (admin)
 router.get('/', authMiddleware, getRequests);
 router.get('/:id', authMiddleware, getRequestById);
 router.patch('/:id/status', authMiddleware, updateRequestStatus);
