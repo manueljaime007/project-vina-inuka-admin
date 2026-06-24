@@ -11,3 +11,4 @@ dist/
 *.swo
 draft
 guide.md
+migrations.sql
