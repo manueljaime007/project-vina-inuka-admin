@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -10,6 +11,9 @@ import {
   Trash2,
   Settings,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Store,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
@@ -25,7 +29,12 @@ const secondaryNav = [
   { href: "/settings", label: "Definições", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggle?: () => void;
+}
+
+export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -38,41 +47,86 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-65 shrink-0 flex-col border-r border-line-soft bg-surface">
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 flex h-screen shrink-0 flex-col border-r border-line-soft bg-surface transition-all duration-300 ease-in-out",
+        collapsed ? "w-20" : "w-65",
+      )}
+    >
+      {/* Botão toggle absoluto no centro da borda direita */}
+      <button
+        onClick={onToggle}
+        className={cn(
+          "absolute -right-3.5 top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-surface shadow-md transition-all hover:bg-surface-sunken focus-ring",
+          collapsed && "rotate-180",
+        )}
+        aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+      >
+        {collapsed ? (
+          <ChevronRight className="size-3.5 text-ink-soft" strokeWidth={2.5} />
+        ) : (
+          <ChevronLeft className="size-3.5 text-ink-soft" strokeWidth={2.5} />
+        )}
+      </button>
+
+      {/* Logo/Header */}
       <div className="px-7 pt-8 pb-6">
-        <Link href="/dashboard" className="flex items-baseline gap-2">
-          <span className="font-display text-2xl text-ink">
-            Aurélie<span className="text-brand-rose-deep">.</span>
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
-            Admin
-          </span>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Store className="size-7 text-brand-rose-deep" strokeWidth={1.8} />
+          {!collapsed && (
+            <>
+              <span className="font-display text-2xl text-ink whitespace-nowrap">
+                Vina Inuka<span className="text-brand-rose-deep">.</span>
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-faint whitespace-nowrap">
+                Admin
+              </span>
+            </>
+          )}
         </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-4">
+      {/* Navigation */}
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4">
         {nav.map((item) => (
-          <NavLink key={item.href} {...item} active={isActive(item.href)} />
+          <NavLink
+            key={item.href}
+            {...item}
+            active={isActive(item.href)}
+            collapsed={collapsed}
+          />
         ))}
 
         <div className="my-4 h-px bg-line-soft" />
 
         {secondaryNav.map((item) => (
-          <NavLink key={item.href} {...item} active={isActive(item.href)} />
+          <NavLink
+            key={item.href}
+            {...item}
+            active={isActive(item.href)}
+            collapsed={collapsed}
+          />
         ))}
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-line-soft px-4 py-5">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink focus-ring"
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink focus-ring",
+            collapsed && "justify-center px-0",
+          )}
+          title={collapsed ? "Sair" : undefined}
         >
-          <LogOut className="size-4.5" />
-          Sair
+          <LogOut className="size-4.5 shrink-0" />
+          {!collapsed && "Sair"}
         </button>
-        <p className="mt-3 truncate px-3 text-[12px] text-ink-faint">
-          admin@aurelie.pt
-        </p>
+        {!collapsed && (
+          <p className="mt-3 truncate px-3 text-[12px] text-ink-faint">
+            silvinamanuel74@gmail.com
+          </p>
+        )}
       </div>
     </aside>
   );
@@ -83,24 +137,28 @@ function NavLink({
   label,
   icon: Icon,
   active,
+  collapsed,
 }: {
   href: string;
   label: string;
   icon: typeof LayoutGrid;
   active: boolean;
+  collapsed: boolean;
 }) {
   return (
     <Link
       href={href}
+      title={collapsed ? label : undefined}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors focus-ring",
         active
           ? "bg-brand-navy text-white shadow-[0_2px_10px_-2px_rgba(20,24,43,0.4)]"
           : "text-ink-soft hover:bg-surface-sunken hover:text-ink",
+        collapsed && "justify-center px-0",
       )}
     >
-      <Icon className="size-4.5" strokeWidth={1.8} />
-      {label}
+      <Icon className="size-4.5 shrink-0" strokeWidth={1.8} />
+      {!collapsed && label}
     </Link>
   );
 }
