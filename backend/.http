@@ -1,0 +1,210 @@
+### Variáveis
+@baseUrl = http://localhost:4077/api/v1
+@token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc4MjM5OS1kYmQ4LTRiNWQtYmIyYy1mYzJkYWM1NDIwMGMiLCJlbWFpbCI6ImFkbWluLXZpbmFAaW51a2EuY29tIiwibmFtZSI6IkFkbWluaXN0cmFkb3IiLCJpYXQiOjE3ODIxNjg4NzQsImV4cCI6MTc4Mjc3MzY3NH0.nk7nXG1AbKCx1X-h74JnELECRhCfaPT5gn8U3ymgEhE
+
+
+@email=admin-vina@inuka.com
+@password=administrador123 
+
+### ============================================
+### ADMIN AUTH
+### ============================================
+
+### Login Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}"
+}
+
+### Verificar Token
+GET {{baseUrl}}/auth/verify
+Authorization: Bearer {{token}}
+
+### ============================================
+### CATEGORIES
+### ============================================
+
+### Listar todas as categorias (público)
+GET {{baseUrl}}/categories
+
+### Buscar categoria por ID (público)
+GET {{baseUrl}}/categories/{{categoryId}}
+
+### Criar categoria (admin)
+POST {{baseUrl}}/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Cremes",
+    "description": "Cremes faciais e corporais"
+}
+
+### Atualizar categoria (admin)
+PUT {{baseUrl}}/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Cremes Hidratantes",
+    "description": "Cremes hidratantes para todos os tipos de pele"
+}
+
+### Deletar categoria (admin)
+DELETE {{baseUrl}}/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+
+### ============================================
+### PRODUCTS
+### ============================================
+
+### Listar todos os produtos (público)
+GET {{baseUrl}}/products
+
+### Buscar produto por ID (público)
+GET {{baseUrl}}/products/{{productId}}
+
+### Listar produtos deletados (admin)
+GET {{baseUrl}}/products/deleted
+Authorization: Bearer {{token}}
+
+### Criar produto (admin)
+POST {{baseUrl}}/products
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Creme Hidratante Facial
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="description"
+
+Creme hidratante para pele seca e sensível
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="price"
+
+49.90
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="stock"
+
+10
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category_id"
+
+{{categoryId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="active"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="produto.jpg"
+Content-Type: image/jpeg
+
+< ./assets/produto.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Atualizar produto (admin)
+PUT {{baseUrl}}/products/{{productId}}
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+Creme Hidratante Facial Premium
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="description"
+
+Creme hidratante premium para todos os tipos de pele
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="price"
+
+59.90
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="stock"
+
+15
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category_id"
+
+{{categoryId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="active"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="produto-novo.jpg"
+Content-Type: image/jpeg
+
+< ./assets/produto-novo.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Deletar produto (soft delete - admin)
+DELETE {{baseUrl}}/products/{{productId}}
+Authorization: Bearer {{token}}
+
+### Restaurar produto (admin)
+PUT {{baseUrl}}/products/{{productId}}/restore
+Authorization: Bearer {{token}}
+
+### ============================================
+### REQUESTS (Solicitações)
+### ============================================
+
+### Criar solicitação (público)
+POST {{baseUrl}}/api/requests
+Content-Type: application/json
+
+{
+    "customer_name": "Maria Silva",
+    "customer_phone": "(11) 99999-9999",
+    "products": [
+        {
+            "product_id": "{{productId}}",
+            "name": "Creme Hidratante",
+            "quantity": 2,
+            "price": 49.90
+        }
+    ],
+    "total": 99.80
+}
+
+### Listar todas as solicitações (admin)
+GET {{baseUrl}}/api/requests
+Authorization: Bearer {{token}}
+
+### Buscar solicitação por ID (admin)
+GET {{baseUrl}}/api/requests/{{requestId}}
+Authorization: Bearer {{token}}
+
+### Listar solicitações deletadas (admin)
+GET {{baseUrl}}/api/requests/deleted
+Authorization: Bearer {{token}}
+
+### Atualizar status da solicitação (admin)
+PUT {{baseUrl}}/api/requests/{{requestId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "status": "completed"
+}
+
+### Deletar solicitação (soft delete - admin)
+DELETE {{baseUrl}}/api/requests/{{requestId}}
+Authorization: Bearer {{token}}
+
+### Restaurar solicitação (admin)
+PUT {{baseUrl}}/api/requests/{{requestId}}/restore
+Authorization: Bearer {{token}}
+
+### ============================================
+### HEALTH CHECK
+### ============================================
+
+### Verificar status da API
+GET {{baseUrl}}/health
