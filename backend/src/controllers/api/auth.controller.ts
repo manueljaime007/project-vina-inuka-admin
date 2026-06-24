@@ -5,15 +5,14 @@ import { supabase } from '@/config/supabase';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_change_this';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({
-                error: 'Email e senha são obrigatórios'
-            });
+            return res.status(400).json({ error: 'Email e senha são obrigatórios' });
         }
 
         const { data: admin, error } = await supabase
@@ -23,20 +22,12 @@ export const login = async (req: Request, res: Response) => {
             .single();
 
         if (error || !admin) {
-            return res.status(401).json({
-                error: 'Credenciais inválidas'
-            });
+            return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
-        const isValidPassword = await bcrypt.compare(
-            password,
-            admin.password
-        );
-
+        const isValidPassword = await bcrypt.compare(password, admin.password);
         if (!isValidPassword) {
-            return res.status(401).json({
-                error: 'Credenciais inválidas'
-            });
+            return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
         const payload = {
@@ -44,7 +35,6 @@ export const login = async (req: Request, res: Response) => {
             email: admin.email,
             name: admin.name
         };
-
 
         const token = jwt.sign(
             payload,
@@ -57,8 +47,17 @@ export const login = async (req: Request, res: Response) => {
             .update({ last_login: new Date().toISOString() })
             .eq('id', admin.id);
 
+        // ✅ Definir cookie HttpOnly
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: IS_PRODUCTION,
+            sameSite: IS_PRODUCTION ? 'strict' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+            path: '/'
+        });
+
         res.json({
-            token,
+            success: true,
             admin: {
                 id: admin.id,
                 email: admin.email,
@@ -72,9 +71,20 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
+export const logout = async (req: Request, res: Response) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: IS_PRODUCTION,
+        sameSite: IS_PRODUCTION ? 'strict' : 'lax',
+        path: '/'
+    });
+
+    res.json({ success: true, message: 'Logout realizado com sucesso' });
+};
+
 export const verifyToken = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
+        const token = req.cookies.token;
 
         if (!token) {
             return res.status(401).json({ error: 'Token não fornecido' });
@@ -94,6 +104,12 @@ export const verifyToken = async (req: Request, res: Response) => {
 
         res.json({ valid: true, admin });
     } catch (error) {
-        res.status(401).json({ error: 'Token inválido ou expirado' });
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({ error: 'Token inválido' });
+        }
+        if (error instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        res.status(500).json({ error: 'Erro ao verificar token' });
     }
 };
