@@ -10,7 +10,7 @@ import { ImageUploadField } from "@/components/ui/ImageUploadField";
 export interface ProductFormValues {
   name: string;
   slug: string;
-  brand: "Aurélie" | "INUKA";
+  brand: "Vina Inuka" | "INUKA";
   categoryId: string;
   price: string;
   stock: string;
@@ -117,10 +117,10 @@ export function ProductForm({
             onChange={(e) => {
             //   setBrand(e.target.value as "Vina" | "INUKA");
               setBrand(e.target.value as "Vina" );
-              emit({ brand: e.target.value as "Aurélie" | "INUKA" });
+              emit({ brand: e.target.value as "Vina Inuka" | "INUKA" });
             }}
           >
-            <option value="Aurélie">Aurélie</option>
+            <option value="Vina Inuka">Vina Inuka</option>
             <option value="INUKA">INUKA</option>
           </Select>
           <Select
