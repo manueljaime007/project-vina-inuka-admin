@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { supabase } from '../../config/supabase';
+import { supabase } from '@/config/supabase';
 import { uploadToCloudinary } from '../../utils/cloudinary-upload';
-
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -30,14 +29,10 @@ export const getProducts = async (req: Request, res: Response) => {
                 )
             `, { count: 'exact' });
 
-        // Sempre filtrar produtos não deletados
         query = query.is('deleted_at', null);
 
-        // Aplicar filtro active SOMENTE se for fornecido
         if (active !== undefined) {
-            const activeValue = active === 'true' || active === '1';
-            query = query.eq('active', activeValue);
-            console.log('Filtro active aplicado:', activeValue); // Debug
+            query = query.eq('active', active === 'true' || active === '1');
         }
 
         if (category_id) {
@@ -66,9 +61,6 @@ export const getProducts = async (req: Request, res: Response) => {
         const { data, error, count } = await query;
 
         if (error) throw error;
-
-        console.log('Total encontrado:', count); // Debug
-        console.log('Dados retornados:', data?.length); // Debug
 
         const total = count || 0;
         const totalPages = Math.ceil(total / limitNum);
@@ -101,8 +93,6 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 };
 
-
-
 export const getProductById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -127,41 +117,49 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 };
 
+export const getDeletedProducts = async (req: Request, res: Response) => {
+    try {
+        const { data, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                categories (
+                    name
+                )
+            `)
+            .not('deleted_at', 'is', null);
+
+        if (error) throw error;
+
+        res.json(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar produtos deletados' });
+    }
+};
+
 export const createProduct = async (req: Request, res: Response) => {
     try {
-        const {
-            name,
-            description,
-            price,
-            stock,
-            category_id,
-            active
-        } = req.body;
-
+        const { name, description, price, stock, category_id, active } = req.body;
         const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: 'Imagem é obrigatória' });
         }
 
-        const imageUrl = await uploadToCloudinary(
-            file.buffer,
-            file.originalname
-        );
+        const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
 
         const { data, error } = await supabase
             .from('products')
-            .insert([
-                {
-                    name,
-                    description,
-                    price: parseFloat(price),
-                    stock: parseInt(stock),
-                    category_id,
-                    active: active !== 'false',
-                    image_url: imageUrl,
-                },
-            ])
+            .insert([{
+                name,
+                description,
+                price: parseFloat(price),
+                stock: parseInt(stock),
+                category_id,
+                active: active !== 'false',
+                image_url: imageUrl,
+            }])
             .select();
 
         if (error) throw error;
@@ -179,7 +177,6 @@ export const updateProduct = async (req: Request, res: Response) => {
         const { name, description, price, stock, category_id, active } = req.body;
         const file = req.file;
 
-        // Buscar o produto existente
         const { data: existingProduct, error: findError } = await supabase
             .from('products')
             .select('*')
@@ -191,8 +188,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Produto não encontrado' });
         }
 
-        // Mesclar os dados existentes com os novos
-        let updateData: any = {
+        const updateData: any = {
             name: name ?? existingProduct.name,
             description: description !== undefined ? description : existingProduct.description,
             price: price !== undefined ? parseFloat(price) : existingProduct.price,
@@ -202,7 +198,6 @@ export const updateProduct = async (req: Request, res: Response) => {
             updated_at: new Date().toISOString(),
         };
 
-        // Se houver imagem nova, fazer upload
         if (file) {
             const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
             updateData.image_url = imageUrl;
@@ -279,29 +274,6 @@ export const restoreProduct = async (req: Request, res: Response) => {
     }
 };
 
-export const getDeletedProducts = async (req: Request, res: Response) => {
-    try {
-        const { data, error } = await supabase
-            .from('products')
-            .select(`
-                *,
-                categories (
-                    name
-                )
-            `)
-            .not('deleted_at', 'is', null);
-
-        if (error) throw error;
-
-        res.json(data);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            error: 'Erro ao buscar produtos deletados'
-        });
-    }
-};
-
 export const deletePermanently = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -310,7 +282,6 @@ export const deletePermanently = async (req: Request, res: Response) => {
             .from('products')
             .delete()
             .eq('id', id)
-            .is('deleted_at', null)
             .select();
 
         if (error) throw error;
@@ -319,12 +290,116 @@ export const deletePermanently = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Produto não encontrado' });
         }
 
-        res.json({ message: 'Produto deletado permanentemente com sucesso' });
-
+        res.json({ message: 'Produto deletado permanentemente' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({
-            error: 'Erro ao deletar produto permanentemente'
-        });
+        res.status(500).json({ error: 'Erro ao deletar produto permanentemente' });
     }
-}
+};
+
+export const deleteManyProducts = async (req: Request, res: Response) => {
+    try {
+        const { ids } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Envie um array de IDs válido' });
+        }
+
+        if (ids.length > 100) {
+            return res.status(400).json({ error: 'Máximo de 100 produtos por vez' });
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .update({
+                deleted_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                active: false
+            })
+            .in('id', ids)
+            .is('deleted_at', null)
+            .select('id');
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            deletedCount: data?.length || 0,
+            deletedIds: data?.map(p => p.id) || []
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao deletar produtos' });
+    }
+};
+
+export const restoreManyProducts = async (req: Request, res: Response) => {
+    try {
+        const { ids } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Envie um array de IDs válido' });
+        }
+
+        if (ids.length > 100) {
+            return res.status(400).json({ error: 'Máximo de 100 produtos por vez' });
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .update({
+                deleted_at: null,
+                updated_at: new Date().toISOString(),
+                active: true
+            })
+            .in('id', ids)
+            .not('deleted_at', 'is', null)
+            .select('id');
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            restoredCount: data?.length || 0,
+            restoredIds: data?.map(p => p.id) || []
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao restaurar produtos' });
+    }
+};
+
+export const deleteManyProductsPermanent = async (req: Request, res: Response) => {
+    try {
+        const { ids } = req.body;
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ 
+                error: 'Envie um array de IDs válido' 
+            });
+        }
+
+        if (ids.length > 100) {
+            return res.status(400).json({ 
+                error: 'Máximo de 100 produtos por vez' 
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .delete()
+            .in('id', ids)
+            .select('id');
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            deletedCount: data?.length || 0,
+            deletedIds: data?.map(p => p.id) || []
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao deletar produtos permanentemente' });
+    }
+};
