@@ -24,10 +24,14 @@ export const getCategories = async (req: Request, res: Response) => {
             query = query.ilike('name', `%${search}%`);
         }
 
-        const validSortFields = ['name', 'created_at', 'updated_at'];
+        const validSortFields = [
+            'name', 'created_at', 'updated_at'
+        ];
         const sortField = validSortFields.includes(sortBy as string) ? sortBy : 'name';
         const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
-        query = query.order(sortField as string, { ascending: sortDir === 'asc' });
+        query = query.order(sortField as string, { 
+            ascending: sortDir === 'asc' 
+        });
 
         query = query.range(offset, offset + limitNum - 1);
 
