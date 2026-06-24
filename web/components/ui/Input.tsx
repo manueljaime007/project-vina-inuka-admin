@@ -3,8 +3,10 @@ import {
   forwardRef,
   TextareaHTMLAttributes,
   ReactNode,
+  useState,
 } from "react";
 import { cn } from "@/shared/helpers/utils";
+import { Eye, EyeOff } from "lucide-react";
 
 interface FieldShellProps {
   label?: string;
@@ -42,13 +44,36 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
   error?: string;
   leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  showPasswordToggle?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
-    { className, label, hint, error, leftIcon, required, id, ...props },
+    {
+      className,
+      label,
+      hint,
+      error,
+      leftIcon,
+      rightIcon,
+      showPasswordToggle,
+      required,
+      id,
+      type = "text",
+      ...props
+    },
     ref,
   ) => {
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Se for password e tiver toggle ativado, controlar o tipo
+    const inputType = showPasswordToggle
+      ? showPassword
+        ? "text"
+        : "password"
+      : type;
+
     const input = (
       <div className="relative">
         {leftIcon && (
@@ -59,15 +84,39 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={id}
+          type={inputType}
           className={cn(
             "h-11 w-full rounded-xl border border-line bg-surface px-4 text-[14px] text-ink placeholder:text-ink-faint",
             "transition-colors focus-ring focus-visible:border-brand-navy",
             leftIcon && "pl-10",
+            (rightIcon || showPasswordToggle) && "pr-10",
             error && "border-danger",
             className,
           )}
           {...props}
         />
+        {/* Ícone direito customizado */}
+        {rightIcon && !showPasswordToggle && (
+          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-faint">
+            {rightIcon}
+          </span>
+        )}
+        {/* Toggle de visibilidade da senha */}
+        {showPasswordToggle && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-faint transition-colors hover:text-ink focus-ring rounded-lg p-0.5"
+            tabIndex={-1}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? (
+              <EyeOff className="size-4.5" strokeWidth={1.8} />
+            ) : (
+              <Eye className="size-4.5" strokeWidth={1.8} />
+            )}
+          </button>
+        )}
       </div>
     );
 
