@@ -36,7 +36,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="mt-6 flex flex-col gap-5">
-          <Input label="Nome da loja" defaultValue="Aurélie Cosméticos" />
+          <Input label="Nome da loja" defaultValue="Vina Inuka Cosméticos" />
           <Input label="Número de WhatsApp" defaultValue="+244 900 000 000" />
           <Input label="Email de contacto" defaultValue="ola@aurelie.pt" />
           <Textarea
