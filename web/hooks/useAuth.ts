@@ -1,25 +1,20 @@
-import { useAuthStore } from '@/lib/store/authStore';
-import { authApi } from '@/lib/api/endpoints/auth';
-import { LoginFormData } from '@/lib/validations/auth';
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { authService } from '@/services/auth.service';
 
 export function useAuth() {
     const router = useRouter();
-    const pathname = usePathname();
-    const { setAuth, setLoading, isLoading, isAuthenticated, user, logout: clearStore } = useAuthStore();
+    const { user, isAuthenticated, isLoading, setAuth, setLoading, logout: clearStore } = useAuthStore();
     const [error, setError] = useState<string | null>(null);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const initRef = useRef(false);
 
-    const login = async (data: LoginFormData) => {
+    const login = async (email: string, password: string) => {
         try {
             setLoading(true);
             setError(null);
 
-            const response = await authApi.login(data);
-
-            setAuth(response.data.admin);
+            const response = await authService.login(email, password);
+            setAuth(response.admin);
             router.push('/dashboard');
 
             return { success: true };
@@ -34,77 +29,40 @@ export function useAuth() {
 
     const logout = async () => {
         try {
-            setLoading(true);
-
-            // Tentar fazer logout no backend
-            try {
-                await authApi.logout();
-            } catch (logoutError) {
-                console.warn('Erro no logout do backend, limpando localmente:', logoutError);
-            }
-
-            // Limpar store
-            clearStore();
-
-            // Redirecionar para login
-            router.push('/login');
-
+            await authService.logout();
         } catch (error) {
             console.error('Erro ao fazer logout:', error);
-            // Mesmo com erro, garantir que o usuário seja deslogado
+        } finally {
             clearStore();
             router.push('/login');
-        } finally {
-            setLoading(false);
         }
     };
 
     const verifyAuth = async () => {
         try {
             setLoading(true);
-            const response = await authApi.verify();
+            const response = await authService.verify();
 
-            if (response.data.valid && response.data.admin) {
-                setAuth(response.data.admin);
+            if (response.valid && response.admin) {
+                setAuth(response.admin);
                 return true;
-            } else {
-                clearStore();
-                return false;
             }
-        } catch (error) {
+            return false;
+        } catch {
             clearStore();
             return false;
         } finally {
             setLoading(false);
-            setIsInitialized(true);
         }
     };
 
-    // Verificar autenticação apenas uma vez na montagem
-    useEffect(() => {
-        if (pathname === '/login') {
-            setIsInitialized(true);
-            return;
-        }
-
-        if (!initRef.current) {
-            initRef.current = true;
-            if (!isAuthenticated && !user) {
-                verifyAuth();
-            } else {
-                setIsInitialized(true);
-            }
-        }
-    }, [pathname]);
-
     return {
+        user,
+        isAuthenticated,
+        isLoading,
+        error,
         login,
         logout,
         verifyAuth,
-        isLoading,
-        isAuthenticated,
-        user,
-        error,
-        isInitialized,
     };
 }

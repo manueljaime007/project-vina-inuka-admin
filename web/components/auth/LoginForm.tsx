@@ -1,15 +1,14 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginFormData } from "@/lib/validations/auth";
+import { useState } from "react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Mail, Lock } from "lucide-react";
 
 interface LoginFormProps {
   onSubmit: (
-    data: LoginFormData,
+    email: string,
+    password: string,
   ) => Promise<{ success: boolean; error?: string }>;
   isLoading?: boolean;
   serverError?: string | null;
@@ -20,62 +19,70 @@ export function LoginForm({
   isLoading = false,
   serverError = null,
 }: LoginFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setError,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFormSubmit = async (data: LoginFormData) => {
-    try {
-      const result = await onSubmit(data);
-      if (!result.success && result.error) {
-        setError("root", { message: result.error });
-      }
-    } catch (error) {
-      console.error("Erro no submit:", error);
-      setError("root", { message: "Erro inesperado. Tente novamente." });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!email || !password) {
+      setError("Preencha todos os campos");
+      return;
+    }
+
+    const result = await onSubmit(email, password);
+    if (!result.success && result.error) {
+      setError(result.error);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <Input
           label="Email"
           type="email"
-          placeholder="admin@aurelie.pt"
+          placeholder="admin@inuka.ao"
           leftIcon={<Mail className="size-4 text-ink-faint" />}
-          {...register("email")}
-          error={errors.email?.message}
-          autoFocus
-          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
+          required
+          autoFocus
         />
 
-        <Input
-          label="Senha"
-          type="password"
-          placeholder="••••••••"
-          leftIcon={<Lock className="size-4 text-ink-faint" />}
-          showPasswordToggle
-          {...register("password")}
-          error={errors.password?.message}
-          required
-          disabled={isLoading}
-        />
+        <div className="relative">
+          <Input
+            label="Senha"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            leftIcon={<Lock className="size-4 text-ink-faint" />}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3.5 top-10 -translate-y-1/2 text-ink-faint hover:text-ink"
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="size-4" strokeWidth={1.8} />
+            ) : (
+              <Eye className="size-4" strokeWidth={1.8} />
+            )}
+          </button>
+        </div>
       </div>
 
-      {(serverError || errors.root?.message) && (
+      {(error || serverError) && (
         <div className="rounded-lg bg-danger-bg px-4 py-3 text-sm text-danger">
-          {serverError || errors.root?.message}
+          {error || serverError}
         </div>
       )}
 
