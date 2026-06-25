@@ -65,7 +65,16 @@ export const api = {
         });
     },
 
-    delete<T>(endpoint: string): Promise<T> {
-        return this.request<T>(endpoint, { method: 'DELETE' });
+    delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'DELETE',
+            ...options,
+            headers: {
+                ...options?.headers,
+                'Content-Type': 'application/json',
+            },
+        });
     },
+
+
 };
