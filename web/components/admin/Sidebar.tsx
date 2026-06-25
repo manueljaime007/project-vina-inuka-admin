@@ -16,6 +16,8 @@ import {
   Store,
 } from "lucide-react";
 import { cn } from "@/shared/helpers/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/lib/store/authStore";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
@@ -37,15 +39,18 @@ interface SidebarProps {
 export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
+  const { user } = useAuthStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + "/");
   }
 
-  function handleLogout() {
-    router.push("/login");
-  }
+  const handleLogout = async () => {
+    await logout();
+    setShowLogoutModal(false);
+  };
 
   return (
     <aside
@@ -113,7 +118,6 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       {/* Footer */}
       <div className="border-t border-line-soft px-4 py-5">
         <button
-          // onClick={handleLogout}
           onClick={() => setShowLogoutModal(true)}
           className={cn(
             "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink focus-ring",
@@ -124,16 +128,17 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
           <LogOut className="size-4.5 shrink-0" />
           {!collapsed && "Sair"}
         </button>
-        {!collapsed && (
+        {!collapsed && user && (
           <p className="mt-3 truncate px-3 text-[12px] text-ink-faint">
-            silvinamanuel74@gmail.com
+            {user.email}
           </p>
         )}
       </div>
 
+      {/* Modal de confirmação de logout */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-[var(--shadow-pop)] animate-scale-in">
             <h2 className="text-xl font-semibold text-ink">Terminar sessão</h2>
 
             <p className="mt-2 text-sm text-ink-soft">
@@ -143,14 +148,14 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="rounded-xl border border-line-soft px-4 py-2 text-sm hover:bg-surface-sunken"
+                className="rounded-xl border border-line-soft px-4 py-2 text-sm text-ink-soft transition-colors hover:bg-surface-sunken"
               >
                 Cancelar
               </button>
 
               <button
                 onClick={handleLogout}
-                className="rounded-xl bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+                className="rounded-xl bg-danger px-4 py-2 text-sm text-white transition-colors hover:bg-danger-deep"
               >
                 Terminar sessão
               </button>

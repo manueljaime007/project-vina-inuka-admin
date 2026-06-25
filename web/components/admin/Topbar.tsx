@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/helpers/utils";
+import { useAuthStore } from "@/lib/store/authStore";
 
 interface TopbarProps {
   title?: string;
@@ -11,6 +12,8 @@ export function Topbar({
   title = "Painel de administração",
   collapsed = false,
 }: TopbarProps) {
+  const { user } = useAuthStore();
+
   return (
     <header
       className={cn(
@@ -27,7 +30,7 @@ export function Topbar({
         {title}
       </span>
       <span className="pr-8 text-[13px] text-ink-soft">
-        silvinamanuel74@gmail.com
+        {user?.email || "admin@aurelie.pt"}
       </span>
     </header>
   );
