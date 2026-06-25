@@ -2,46 +2,68 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Tag } from "lucide-react";
-import {
-  categories as initialCategories,
-  products,
-} from "@/shared/data/mock-data";
-import { Category } from "@/shared/types";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { NewCategoryModal } from "@/components/products/NewCategoryModal";
 import { EditCategoryModal } from "@/components/products/EditCategoryModal";
+import { useCategories } from "@/hooks/useCategories";
 
 export default function CategoriesPage() {
   const { showToast } = useToast();
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const {
+    categories,
+    loading,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategories();
   const [newOpen, setNewOpen] = useState(false);
-  const [editing, setEditing] = useState<Category | null>(null);
-  const [deleting, setDeleting] = useState<Category | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
-  function countProducts(categoryId: string) {
-    return products.filter((p) => p.categoryId === categoryId).length;
+  async function handleCreate(name: string) {
+    const result = await createCategory(name);
+    if (result.success) {
+      showToast("Categoria criada com sucesso!", "success");
+      setNewOpen(false);
+    } else {
+      showToast(result.error || "Erro ao criar categoria", "danger");
+    }
   }
 
-  function handleCreate(name: string) {
-    setCategories((prev) => [...prev, { id: `cat-${Date.now()}`, name }]);
+  async function handleSaveEdit(id: string, name: string) {
+    const result = await updateCategory(id, name);
+    if (result.success) {
+      showToast("Categoria atualizada com sucesso!", "success");
+      setEditing(null);
+    } else {
+      showToast(result.error || "Erro ao atualizar categoria", "danger");
+    }
   }
 
-  function handleSaveEdit(id: string, name: string) {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, name } : c)),
-    );
-    showToast("Categoria atualizada.", "success");
-    setEditing(null);
-  }
-
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    setCategories((prev) => prev.filter((c) => c.id !== deleting.id));
-    showToast(`Categoria "${deleting.name}" eliminada.`, "success");
-    setDeleting(null);
+    const result = await deleteCategory(deleting.id);
+    if (result.success) {
+      showToast(`Categoria "${deleting.name}" eliminada.`, "success");
+      setDeleting(null);
+    } else {
+      showToast(result.error || "Erro ao eliminar categoria", "danger");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
   }
 
   return (
@@ -78,45 +100,46 @@ export default function CategoriesPage() {
           />
         ) : (
           <div className="divide-y divide-line-soft">
-            {categories.map((category) => {
-              const count = countProducts(category.id);
-              return (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between px-7 py-5"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-brand-blush text-brand-rose-deep">
-                      <Tag className="size-[17px]" strokeWidth={1.8} />
-                    </span>
-                    <div>
-                      <p className="text-[15px] font-medium text-ink">
-                        {category.name}
-                      </p>
-                      <p className="text-[13px] text-ink-faint">
-                        {count} produto{count !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setEditing(category)}
-                      aria-label="Editar categoria"
-                      className="flex size-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink focus-ring"
-                    >
-                      <Pencil className="size-[16px]" />
-                    </button>
-                    <button
-                      onClick={() => setDeleting(category)}
-                      aria-label="Eliminar categoria"
-                      className="flex size-9 items-center justify-center rounded-lg text-danger transition-colors hover:bg-danger-bg focus-ring"
-                    >
-                      <Trash2 className="size-[16px]" />
-                    </button>
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                className="flex items-center justify-between px-7 py-5"
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-brand-blush text-brand-rose-deep">
+                    <Tag className="size-[17px]" strokeWidth={1.8} />
+                  </span>
+                  <div>
+                    <p className="text-[15px] font-medium text-ink">
+                      {category.name}
+                    </p>
+                    <p className="text-[13px] text-ink-faint">
+                      {category.description || "Sem descrição"}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      setEditing({ id: category.id, name: category.name })
+                    }
+                    aria-label="Editar categoria"
+                    className="flex size-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink focus-ring"
+                  >
+                    <Pencil className="size-[16px]" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setDeleting({ id: category.id, name: category.name })
+                    }
+                    aria-label="Eliminar categoria"
+                    className="flex size-9 items-center justify-center rounded-lg text-danger transition-colors hover:bg-danger-bg focus-ring"
+                  >
+                    <Trash2 className="size-[16px]" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -126,7 +149,7 @@ export default function CategoriesPage() {
         onClose={() => setNewOpen(false)}
         onCreate={handleCreate}
       />
-      
+
       <EditCategoryModal
         open={Boolean(editing)}
         categoryId={editing?.id || ""}
