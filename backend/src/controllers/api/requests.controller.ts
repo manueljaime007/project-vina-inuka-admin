@@ -1,44 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../../config/supabase';
 
-export const createRequest = async (req: Request, res: Response) => {
-    try {
-        const {
-            customer_name,
-            customer_phone,
-            products,
-            total
-        } = req.body;
-
-        if (!customer_name || !customer_phone || !products || !total) {
-            return res.status(400).json({
-                error: 'Todos os campos são obrigatórios'
-            });
-        }
-
-        const { data, error } = await supabase
-            .from('requests')
-            .insert([
-                {
-                    customer_name,
-                    customer_phone,
-                    products,
-                    total: parseFloat(total),
-                    status: 'pending'
-                },
-            ])
-            .select();
-
-        if (error) throw error;
-
-        res.status(201).json(data[0]);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Erro ao criar solicitação' });
-    }
-};
-
-
 export const getRequests = async (req: Request, res: Response) => {
     try {
         const {
@@ -113,9 +75,6 @@ export const getRequests = async (req: Request, res: Response) => {
     }
 };
 
-
-
-
 export const getRequestById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -133,6 +92,43 @@ export const getRequestById = async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
         res.status(404).json({ error: 'Solicitação não encontrada' });
+    }
+};
+
+export const createRequest = async (req: Request, res: Response) => {
+    try {
+        const {
+            customer_name,
+            customer_phone,
+            products,
+            total
+        } = req.body;
+
+        if (!customer_name || !customer_phone || !products || !total) {
+            return res.status(400).json({
+                error: 'Todos os campos são obrigatórios'
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('requests')
+            .insert([
+                {
+                    customer_name,
+                    customer_phone,
+                    products,
+                    total: parseFloat(total),
+                    status: 'pending'
+                },
+            ])
+            .select();
+
+        if (error) throw error;
+
+        res.status(201).json(data[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao criar solicitação' });
     }
 };
 
@@ -204,6 +200,41 @@ export const deleteRequest = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Erro ao deletar solicitação' });
     }
 };
+
+export const deleteManyRequests = async (req: Request, res: Response) => {
+    const { ids } = req.body;
+
+    try {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({
+                error: 'Envie um array de IDs válido'
+            });
+        }
+
+        if (ids.length > 100) {
+            return res.status(400).json({
+                error: 'Máximo de 100 solicitações por vez'
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('requests')
+            .delete()
+            .in('id', ids)
+            .select('id')
+
+        if (error) throw error;
+        res.json({
+            success: true,
+            deletedCount: data?.length || 0,
+            deletedIds: data?.map(p => p.id) || []
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao deletar solicitações permanentemente' });
+    }
+}
+
 
 export const getDeletedRequests = async (req: Request, res: Response) => {
     try {
