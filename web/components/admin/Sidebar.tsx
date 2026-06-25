@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/shared/helpers/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore } from "@/store/authStore";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },

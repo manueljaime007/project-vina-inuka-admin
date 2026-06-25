@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/helpers/utils";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore } from "@/store/authStore";
 
 interface TopbarProps {
   title?: string;
