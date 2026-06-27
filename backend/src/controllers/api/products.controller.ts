@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '@/config/supabase';
 import { uploadToCloudinary } from '../../utils/cloudinary-upload';
+import { slugify } from '@/utils/slugify';
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -143,19 +144,20 @@ export const getProductById = async (req: Request, res: Response) => {
 
 export const getDeletedProducts = async (req: Request, res: Response) => {
     try {
-        const { data, error } = await supabase
+        const { data, count, error } = await supabase
             .from('products')
             .select(`
                 *,
                 categories (
                     name
                 )
-            `)
-            .not('deleted_at', 'is', null);
+            `, { count : 'exact'})
+            .not('deleted_at', 'is', null)
 
         if (error) throw error;
 
         res.json(data);
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Erro ao buscar produtos deletados' });
@@ -164,41 +166,69 @@ export const getDeletedProducts = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
-        const { name, description, price, stock, category_id, active } = req.body;
+        const {
+            name,
+            description,
+            price,
+            stock,
+            category_id,
+            active,
+            slug: slugInput
+        } = req.body;
         const file = req.file;
 
+        if (!name || !category_id) {
+            return res.status(400).json({ error: 'Nome e categoria são obrigatórios' });
+        }
         if (!file) {
             return res.status(400).json({ error: 'Imagem é obrigatória' });
         }
 
         const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
 
+        const finalSlug = slugInput && slugInput.trim()
+            ? slugify(slugInput)
+            : slugify(name);
+
+        const productData = {
+            name,
+            slug: finalSlug,
+            description: description || null,
+            price: parseFloat(price),
+            stock: parseInt(stock),
+            category_id,
+            active: active !== 'false' && active !== false,
+            image_url: imageUrl,
+        };
+
         const { data, error } = await supabase
             .from('products')
-            .insert([{
-                name,
-                description,
-                price: parseFloat(price),
-                stock: parseInt(stock),
-                category_id,
-                active: active !== 'false',
-                image_url: imageUrl,
-            }])
-            .select();
+            .insert([productData])
+            .select(`
+                *,
+                categories (name)
+            `);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
 
         res.status(201).json(data[0]);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Erro ao criar produto' });
+    } catch (error: any) {
+        console.error('Erro ao criar produto:', error);
+        res.status(500).json({
+            error: 'Erro ao criar produto',
+            details: error.message
+        });
     }
 };
+
 
 export const updateProduct = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, description, price, stock, category_id, active } = req.body;
+        const { name, slug: slugInput, description, price, stock, category_id, active } = req.body;
         const file = req.file;
 
         const { data: existingProduct, error: findError } = await supabase
@@ -213,34 +243,46 @@ export const updateProduct = async (req: Request, res: Response) => {
         }
 
         const updateData: any = {
-            name: name ?? existingProduct.name,
-            description: description !== undefined ? description : existingProduct.description,
-            price: price !== undefined ? parseFloat(price) : existingProduct.price,
-            stock: stock !== undefined ? parseInt(stock) : existingProduct.stock,
-            category_id: category_id ?? existingProduct.category_id,
-            active: active !== undefined ? active !== 'false' : existingProduct.active,
             updated_at: new Date().toISOString(),
         };
+
+        if (name !== undefined) updateData.name = name.trim();
+        if (description !== undefined) updateData.description = description?.trim() || null;
+        if (price !== undefined) updateData.price = parseFloat(price);
+        if (stock !== undefined) updateData.stock = parseInt(stock);
+        if (category_id !== undefined) updateData.category_id = category_id;
+        if (active !== undefined) updateData.active = active !== 'false' && active !== false;
+
+        if (slugInput !== undefined) {
+            updateData.slug = slugify(slugInput);
+        } else if (name !== undefined) {
+            updateData.slug = slugify(name);
+        }
 
         if (file) {
             const imageUrl = await uploadToCloudinary(file.buffer, file.originalname);
             updateData.image_url = imageUrl;
         }
 
+
         const { data, error } = await supabase
             .from('products')
             .update(updateData)
             .eq('id', id)
-            .select();
+            .select(`
+                *,
+                categories (name)
+            `);
 
         if (error) throw error;
 
         res.json(data[0]);
-    } catch (error) {
-        console.error(error);
+    } catch (error: any) {
+        console.error('Erro ao atualizar produto:', error);
         res.status(500).json({ error: 'Erro ao atualizar produto' });
     }
 };
+
 
 export const deleteProduct = async (req: Request, res: Response) => {
     try {

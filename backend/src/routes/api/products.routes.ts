@@ -12,7 +12,8 @@ import {
     deleteManyProducts,
     restoreManyProducts,
     deleteManyProductsPermanent,
-    getProductBySlug
+    getProductBySlug,
+    getProductById
 } from '@/controllers/api/products.controller';
 
 const router = Router();
@@ -30,7 +31,8 @@ router.put('/batch/restore', authMiddleware, restoreManyProducts);
 router.delete('/batch/permanent', authMiddleware, deleteManyProductsPermanent);
 
 router.get('/', getProducts);
-router.get('/:slug', getProductBySlug);
+router.get('/client/:slug', getProductBySlug);
+router.get('/:id', getProductById);
 
 router.post('/', authMiddleware, upload.single('image'), createProduct);
 router.patch('/:id', authMiddleware, upload.single('image'), updateProduct);
