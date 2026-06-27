@@ -147,7 +147,7 @@ export default function CategoriesPage() {
       <NewCategoryModal
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreate={handleCreate}
+        onCreate={handleCreate} 
       />
 
       <EditCategoryModal
