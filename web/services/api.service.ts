@@ -6,6 +6,7 @@ export const api = {
         options: RequestInit = {}
     ): Promise<T> {
         const url = `${API_URL}${endpoint}`;
+        console.log('🔗 API Request URL:', url);
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
         };
@@ -57,6 +58,7 @@ export const api = {
             body: body instanceof FormData ? body : JSON.stringify(body),
         });
     },
+
 
     patch<T>(endpoint: string, body?: any): Promise<T> {
         return this.request<T>(endpoint, {
