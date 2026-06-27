@@ -1,28 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, RotateCcw, AlertTriangle } from "lucide-react";
-import { trashedProducts as initialTrashed } from "@/shared/data/mock-data";
-import { Product } from "@/shared/types";
+import { Trash2, RotateCcw, AlertTriangle, PackageX } from "lucide-react";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { BulkActionsBar } from "@/components/ui/BulkActionsBar";
 import { useToast } from "@/components/ui/Toast";
+import { useTrash } from "@/hooks/useTrash";
 import { formatCurrencyKz, formatDate } from "@/shared/helpers/utils";
 
 export default function TrashPage() {
   const { showToast } = useToast();
-  const [items, setItems] = useState<Product[]>(initialTrashed);
+  const { products, loading, refetch, restoreMany, deleteManyPermanent } =
+    useTrash();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmAction, setConfirmAction] = useState<
     "restore" | "delete" | null
   >(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const allSelected =
-    items.length > 0 && items.every((p) => selectedIds.has(p.id));
-  const someSelected = items.some((p) => selectedIds.has(p.id));
+    products.length > 0 && products.every((p) => selectedIds.has(p.id));
+  const someSelected = products.some((p) => selectedIds.has(p.id));
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -35,32 +37,54 @@ export default function TrashPage() {
   function toggleAll() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      const all = items.every((p) => next.has(p.id));
-      items.forEach((p) => (all ? next.delete(p.id) : next.add(p.id)));
+      const all = products.every((p) => next.has(p.id));
+      products.forEach((p) => (all ? next.delete(p.id) : next.add(p.id)));
       return next;
     });
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    const ids = Array.from(selectedIds);
+    setActionLoading(true);
+
     if (confirmAction === "restore") {
-      setItems((prev) => prev.filter((p) => !selectedIds.has(p.id)));
-      showToast(
-        selectedIds.size > 1
-          ? `${selectedIds.size} produtos restaurados.`
-          : "Produto restaurado.",
-        "success",
-      );
+      const result = await restoreMany(ids);
+      if (result.success) {
+        showToast(
+          ids.length > 1
+            ? `${ids.length} produtos restaurados.`
+            : "Produto restaurado.",
+          "success",
+        );
+        setSelectedIds(new Set());
+      } else {
+        showToast(result.error || "Erro ao restaurar produtos", "danger");
+      }
     } else if (confirmAction === "delete") {
-      setItems((prev) => prev.filter((p) => !selectedIds.has(p.id)));
-      showToast(
-        selectedIds.size > 1
-          ? `${selectedIds.size} produtos eliminados permanentemente.`
-          : "Produto eliminado permanentemente.",
-        "success",
-      );
+      const result = await deleteManyPermanent(ids);
+      if (result.success) {
+        showToast(
+          ids.length > 1
+            ? `${ids.length} produtos eliminados permanentemente.`
+            : "Produto eliminado permanentemente.",
+          "success",
+        );
+        setSelectedIds(new Set());
+      } else {
+        showToast(result.error || "Erro ao eliminar produtos", "danger");
+      }
     }
-    setSelectedIds(new Set());
+
+    setActionLoading(false);
     setConfirmAction(null);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
   }
 
   return (
@@ -73,7 +97,7 @@ export default function TrashPage() {
       </div>
 
       <div className="rounded-2xl border border-line-soft bg-surface shadow-[var(--shadow-card)]">
-        {items.length === 0 ? (
+        {products.length === 0 ? (
           <EmptyState
             icon={Trash2}
             title="O lixo está vazio"
@@ -116,7 +140,7 @@ export default function TrashPage() {
             </div>
 
             <div className="divide-y divide-line-soft">
-              {items.map((product) => {
+              {products.map((product) => {
                 const checked = selectedIds.has(product.id);
                 return (
                   <div
@@ -156,9 +180,18 @@ export default function TrashPage() {
         )}
       </div>
 
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        count={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onDelete={() => setConfirmAction("delete")}
+        itemLabel="produtos no lixo"
+      />
+
+      {/* Modal de confirmação */}
       <Modal
         open={Boolean(confirmAction)}
-        onClose={() => setConfirmAction(null)}
+        onClose={() => !actionLoading && setConfirmAction(null)}
         title=""
         size="sm"
       >
@@ -192,6 +225,7 @@ export default function TrashPage() {
           <Button
             variant="secondary"
             onClick={() => setConfirmAction(null)}
+            disabled={actionLoading}
             className="flex-1"
           >
             Cancelar
@@ -199,9 +233,10 @@ export default function TrashPage() {
           <Button
             variant={confirmAction === "delete" ? "danger" : "primary"}
             onClick={handleConfirm}
+            loading={actionLoading}
             className="flex-1"
           >
-            Confirmar
+            {actionLoading ? "A processar..." : "Confirmar"}
           </Button>
         </div>
       </Modal>
