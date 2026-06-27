@@ -61,24 +61,43 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 🔑 Ler o FormData do request
         const formData = await request.formData();
 
         // 🔑 Log dos campos recebidos
         console.log('📦 POST Product - FormData recebido:');
+        const entries: { key: string; value: any }[] = [];
         for (const [key, value] of formData.entries()) {
-            console.log(`  ${key}: ${value instanceof File ? `[File: ${value.name}]` : value}`);
+            const isFile = value instanceof File;
+            entries.push({ key, value: isFile ? `[File: ${value.name}]` : value });
+            console.log(`  ${key}: ${isFile ? `[File: ${value.name}]` : value}`);
+        }
+
+        // 🔑 Criar NOVO FormData para enviar ao backend (garantir que está limpo)
+        const backendFormData = new FormData();
+        for (const [key, value] of formData.entries()) {
+            backendFormData.append(key, value);
+        }
+
+        // 🔑 Debug: verificar o que está a ser enviado
+        console.log('📤 Enviando para o backend:', BACKEND_URL);
+        for (const [key, value] of backendFormData.entries()) {
+            const isFile = value instanceof File;
+            console.log(`  ${key}: ${isFile ? `[File: ${value.name}]` : value}`);
         }
 
         const response = await fetch(`${BACKEND_URL}/products`, {
             method: 'POST',
             headers: {
+                // 🔑 NÃO definir Content-Type - o fetch vai definir com boundary automaticamente
                 'Authorization': `Bearer ${token}`,
                 'Cookie': `token=${token}`,
             },
-            body: formData,
+            body: backendFormData, // ← Enviar o FormData
         });
 
         const data = await response.json();
+        console.log('📦 POST Product - Backend Status:', response.status);
         console.log('📦 POST Product - Backend Response:', data);
 
         if (!response.ok) {

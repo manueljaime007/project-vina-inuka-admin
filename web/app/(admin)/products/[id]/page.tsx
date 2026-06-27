@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, PackageX } from "lucide-react";
-import { products } from "@/shared/data/mock-data";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -12,18 +11,55 @@ import { useToast } from "@/components/ui/Toast";
 import { formatCurrencyKz, formatDate } from "@/shared/helpers/utils";
 import { EditProductModal } from "@/components/products/EditProductModal";
 import { DeleteProductModal } from "@/components/products/DeleteProductModal";
+import { useProducts } from "@/hooks/useProducts";
 
 export default function ProductDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { showToast } = useToast();
+  const { getProductById, delete: deleteProduct } = useProducts();
 
-  const product = products.find((p) => p.id === params.id) ?? null;
-
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  if (!product) {
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!params.id) return;
+      const result = await getProductById(params.id);
+      if (result.success) {
+        setProduct(result.data);
+      } else {
+        setError(result.error || "Produto não encontrado");
+      }
+      setLoading(false);
+    };
+    loadProduct();
+  }, [params.id]);
+
+  async function handleDelete() {
+    if (!product) return;
+    const result = await deleteProduct(product.id);
+    if (result.success) {
+      showToast("Produto movido para o lixo.", "success");
+      setDeleteOpen(false);
+      router.push("/products");
+    } else {
+      showToast(result.error || "Erro ao eliminar produto", "danger");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
     return (
       <EmptyState
         icon={PackageX}
@@ -38,11 +74,6 @@ export default function ProductDetailsPage() {
     );
   }
 
-  function handleDelete() {
-    showToast("Produto movido para o lixo.", "success");
-    setDeleteOpen(false);
-    router.push("/products");
-  }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
@@ -92,15 +123,15 @@ export default function ProductDetailsPage() {
               <h1 className="font-display text-[30px] text-ink">
                 {product.name}
               </h1>
-              <Badge tone={product.status === "ativo" ? "success" : "neutral"}>
-                {product.status === "ativo" ? "Ativo" : "Inativo"}
+              <Badge tone={product.active ? "success" : "neutral"}>
+                {product.active ? "Ativo" : "Inativo"}
               </Badge>
             </div>
             <p className="mt-1 text-[14px] text-ink-faint">/{product.slug}</p>
           </div>
 
           <p className="text-[15px] leading-relaxed text-ink-soft">
-            {product.description}
+            {product.description || "Sem descrição"}
           </p>
 
           <div className="grid grid-cols-2 gap-5 rounded-xl bg-surface-sunken p-5 sm:grid-cols-4">
@@ -109,12 +140,18 @@ export default function ProductDetailsPage() {
               value={`${formatCurrencyKz(product.price)} Kz`}
             />
             <Detail label="Stock" value={`${product.stock} unid.`} />
-            {/* <Detail label="Marca" value={product.brand} /> */}
-            <Detail label="Categoria" value={product.categoryName} />
+            <Detail
+              label="Categoria"
+              value={product.categories?.name || "Sem categoria"}
+            />
+            <Detail
+              label="Status"
+              value={product.active ? "Ativo" : "Inativo"}
+            />
           </div>
 
           <p className="text-[13px] text-ink-faint">
-            Adicionado em {formatDate(product.createdAt)}
+            Adicionado em {formatDate(product.created_at)}
           </p>
         </div>
       </div>

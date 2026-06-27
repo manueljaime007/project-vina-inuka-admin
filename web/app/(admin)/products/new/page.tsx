@@ -10,29 +10,48 @@ import {
   ProductForm,
   ProductFormValues,
 } from "@/components/products/ProductForm";
+import { useProducts } from "@/hooks/useProducts";
 
 export default function NewProductPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { createProduct } = useProducts();
   const [values, setValues] = useState<ProductFormValues | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!values?.name.trim()) {
       setError("Dê um nome ao produto antes de guardar.");
       return;
     }
+
     setError("");
     setLoading(true);
 
-    // Sem backend ligado ainda — isto será substituído por um envio
-    // multipart/form-data com a imagem e os restantes campos.
-    setTimeout(() => {
-      setLoading(false);
+    // Converter ProductFormValues para FormData
+    const formData = new FormData();
+    formData.append("name", values.name);
+    formData.append("slug", values.slug);
+    formData.append("category_id", values.categoryId);
+    formData.append("price", values.price);
+    formData.append("stock", values.stock);
+    formData.append("active", values.status ? "true" : "false");
+    formData.append("description", values.description || "");
+
+    if (values.imageFile) {
+      formData.append("image", values.imageFile);
+    }
+
+    const result = await createProduct(formData);
+    setLoading(false);
+
+    if (result.success) {
       showToast(`"${values.name}" foi adicionado ao catálogo.`, "success");
       router.push("/products");
-    }, 700);
+    } else {
+      setError(result.error || "Erro ao criar produto");
+    }
   }
 
   return (

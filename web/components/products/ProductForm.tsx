@@ -1,11 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { categories } from "@/shared/data/mock-data";
+import { FormEvent, useState, useEffect } from "react";
 import { Product } from "@/shared/types";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
+import { useCategories } from "@/hooks/useCategories";
 
 export interface ProductFormValues {
   name: string;
@@ -38,6 +38,8 @@ export function ProductForm({
   initial,
   onValuesChange,
 }: ProductFormProps) {
+  const { categories, loading: categoriesLoading } = useCategories();
+
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
@@ -113,6 +115,7 @@ export function ProductForm({
               setCategoryId(e.target.value);
               emit({ categoryId: e.target.value });
             }}
+            disabled={categoriesLoading}
           >
             <option value="">— Sem categoria —</option>
             {categories.map((c) => (

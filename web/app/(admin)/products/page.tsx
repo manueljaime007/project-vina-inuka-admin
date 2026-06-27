@@ -1,13 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Plus, Tag, LayoutGrid, List, PackageX } from "lucide-react";
-import {
-  categories as initialCategories,
-  products as initialProducts,
-} from "@/shared/data/mock-data";
-import { Product } from "@/shared/types";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -20,43 +15,69 @@ import { BulkActionsBar } from "@/components/ui/BulkActionsBar";
 import { EditProductModal } from "@/components/products/EditProductModal";
 import { DeleteProductModal } from "@/components/products/DeleteProductModal";
 import { NewCategoryModal } from "@/components/products/NewCategoryModal";
+import { useProducts } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
 import { cn } from "@/shared/helpers/utils";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 export default function ProductsPage() {
   const { showToast } = useToast();
 
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState(initialCategories);
+  // API hooks
+  const {
+    products,
+    meta,
+    loading,
+    setSearch,
+    setCategory,
+    goToPage,
+    delete: deleteProduct,
+    deleteMany,
+  } = useProducts({ page: 1, limit: PAGE_SIZE });
 
-  const [search, setSearch] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
+
+  const { categories, createCategory } = useCategories();
+
+  // async function handleCreateCategory(name: string) {
+  //   const result = await createCategory(name);
+  //   if (result.success) {
+  //     showToast("Categoria criada com sucesso!", "success");
+  //     setNewOpen(false);
+  //   } else {
+  //     showToast(result.error || "Erro ao criar categoria", "danger");
+  //   }
+  // }
+
+  // Estado local
+  const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [view, setView] = useState<"table" | "grid">("table");
   const [page, setPage] = useState(1);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [deletingProducts, setDeletingProducts] = useState<Product[] | null>(
-    null,
-  );
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [deletingProducts, setDeletingProducts] = useState<any[] | null>(null);
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        categoryFilter === "all" || p.categoryId === categoryFilter;
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, search, categoryFilter]);
+  // Sincronizar página com meta da API
+  useEffect(() => {
+    if (meta) {
+      setPage(meta.page);
+    }
+  }, [meta]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Handlers
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setSearch(value);
+  };
 
-  function resetToFirstPage() {
-    setPage(1);
-  }
+  const handleCategoryFilter = (value: string) => {
+    setCategoryFilter(value);
+    setCategory(value === "all" ? null : value);
+  };
 
   function toggleSelection(id: string) {
     setSelectedIds((prev) => {
@@ -70,30 +91,38 @@ export default function ProductsPage() {
   function toggleSelectAllOnPage() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      const allSelected = pageItems.every((p) => next.has(p.id));
-      pageItems.forEach((p) =>
+      const allSelected = products.every((p) => next.has(p.id));
+      products.forEach((p) =>
         allSelected ? next.delete(p.id) : next.add(p.id),
       );
       return next;
     });
   }
 
-  function handleDeleteConfirmed() {
+  async function handleDeleteConfirmed() {
     if (!deletingProducts) return;
-    const idsToDelete = new Set(deletingProducts.map((p) => p.id));
-    setProducts((prev) => prev.filter((p) => !idsToDelete.has(p.id)));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      idsToDelete.forEach((id) => next.delete(id));
-      return next;
-    });
-    showToast(
-      idsToDelete.size > 1
-        ? `${idsToDelete.size} produtos movidos para o lixo.`
-        : "Produto movido para o lixo.",
-      "success",
-    );
-    setDeletingProducts(null);
+
+    const ids = deletingProducts.map((p) => p.id);
+
+    if (ids.length === 1) {
+      const result = await deleteProduct(ids[0]);
+      if (result.success) {
+        showToast("Produto movido para o lixo.", "success");
+        setDeletingProducts(null);
+        setSelectedIds(new Set());
+      } else {
+        showToast(result.error || "Erro ao eliminar produto", "danger");
+      }
+    } else {
+      const result = await deleteMany(ids);
+      if (result.success) {
+        showToast(`${ids.length} produtos movidos para o lixo.`, "success");
+        setDeletingProducts(null);
+        setSelectedIds(new Set());
+      } else {
+        showToast(result.error || "Erro ao eliminar produtos", "danger");
+      }
+    }
   }
 
   function handleSaveEdit() {
@@ -101,13 +130,20 @@ export default function ProductsPage() {
     setEditingProduct(null);
   }
 
-  function handleCreateCategory(name: string) {
-    const newCat = { id: `cat-${Date.now()}`, name };
-    setCategories((prev) => [...prev, newCat]);
-    showToast(`Categoria "${name}" criada.`, "success");
-  }
+  // async function handleCreateCategory(name: string) {
+  //   // A criar categoria via API - será implementado
+  //   showToast(`Categoria "${name}" criada.`, "success");
+  // }
 
   const selectedProducts = products.filter((p) => selectedIds.has(p.id));
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-20">
@@ -117,16 +153,21 @@ export default function ProductsPage() {
           <p className="mt-1 text-[15px] text-ink-soft">
             Gerir o catálogo da loja.
           </p>
+          {meta && (
+            <p className="mt-1 text-[13px] text-ink-faint">
+              {meta.total} produto{meta.total !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          <Button
+          {/* <Button
             variant="secondary"
             onClick={() => setNewCategoryOpen(true)}
             className="gap-1.5"
           >
             <Tag className="size-4" />
             Nova categoria
-          </Button>
+          </Button> */}
           <Link href="/products/new">
             <Button className="gap-1.5">
               <Plus className="size-4" />
@@ -140,19 +181,13 @@ export default function ProductsPage() {
         <Input
           placeholder="Pesquisar produto…"
           leftIcon={<Search className="size-[17px]" />}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            resetToFirstPage();
-          }}
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
           className="sm:max-w-sm"
         />
         <Select
           value={categoryFilter}
-          onChange={(e) => {
-            setCategoryFilter(e.target.value);
-            resetToFirstPage();
-          }}
+          onChange={(e) => handleCategoryFilter(e.target.value)}
           className="sm:max-w-[220px]"
         >
           <option value="all">Todas as categorias</option>
@@ -182,7 +217,7 @@ export default function ProductsPage() {
       </div>
 
       <div className="rounded-2xl border border-line-soft bg-surface shadow-[var(--shadow-card)]">
-        {pageItems.length === 0 ? (
+        {products.length === 0 ? (
           <EmptyState
             icon={PackageX}
             title="Nenhum produto encontrado"
@@ -198,7 +233,7 @@ export default function ProductsPage() {
           />
         ) : view === "table" ? (
           <ProductsTable
-            products={pageItems}
+            products={products}
             selectedIds={selectedIds}
             onToggle={toggleSelection}
             onToggleAll={toggleSelectAllOnPage}
@@ -207,7 +242,7 @@ export default function ProductsPage() {
           />
         ) : (
           <ProductsGrid
-            products={pageItems}
+            products={products}
             selectedIds={selectedIds}
             onToggle={toggleSelection}
             onEdit={setEditingProduct}
@@ -215,19 +250,22 @@ export default function ProductsPage() {
           />
         )}
 
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          totalItems={filtered.length}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
-        />
+        {meta && meta.totalPages > 1 && (
+          <Pagination
+            page={meta.page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            pageSize={meta.limit}
+            onPageChange={goToPage}
+          />
+        )}
       </div>
 
       <BulkActionsBar
         count={selectedIds.size}
         onClear={() => setSelectedIds(new Set())}
         onDelete={() => setDeletingProducts(selectedProducts)}
+        itemLabel="produtos"
       />
 
       <EditProductModal
@@ -235,6 +273,7 @@ export default function ProductsPage() {
         product={editingProduct}
         onClose={() => setEditingProduct(null)}
         onSave={handleSaveEdit}
+        // onSuccess={() => refetchProducts()}
       />
 
       <DeleteProductModal
@@ -244,11 +283,12 @@ export default function ProductsPage() {
         productNames={deletingProducts?.map((p) => p.name) ?? []}
       />
 
-      <NewCategoryModal
+      {/* <NewCategoryModal
         open={newCategoryOpen}
-        onClose={() => setNewCategoryOpen(false)}
+        // onClose={() => setNewCategoryOpen(false)}
+        onClose={() => setNewOpen(false)}
         onCreate={handleCreateCategory}
-      />
+      /> */}
     </div>
   );
 }

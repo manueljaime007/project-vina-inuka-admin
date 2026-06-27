@@ -73,21 +73,29 @@ export const productsService = {
         return api.get<Product>(`/products/${id}`);
     },
 
+  
     create: (data: FormData) => {
-        // 🔑 Garantir que o FormData está correto
-        console.log('📦 Creating product with FormData:');
+        const normalized = new FormData();
+
         for (const [key, value] of data.entries()) {
-            console.log(`  ${key}: ${value instanceof File ? `[File: ${value.name}]` : value}`);
+            let newKey = key;
+            if (key === 'imageFile') newKey = 'image';
+            normalized.append(newKey, value);
         }
-        return api.post<Product>('/products', data);
+
+        return api.post<Product>('/products', normalized);
     },
 
     update: (id: string, data: FormData) => {
-        console.log(`📦 Updating product ${id} with FormData:`);
+        const normalized = new FormData();
         for (const [key, value] of data.entries()) {
-            console.log(`  ${key}: ${value instanceof File ? `[File: ${value.name}]` : value}`);
+            let newKey = key;
+            if (key === 'categoryId') newKey = 'category_id';
+            if (key === 'status') newKey = 'active';
+            if (key === 'imageFile') newKey = 'image';
+            normalized.append(newKey, value);
         }
-        return api.patch<Product>(`/products/${id}`, data);
+        return api.patch<Product>(`/products/${id}`, normalized);
     },
 
     delete: (id: string) => {
@@ -113,9 +121,11 @@ export const productsService = {
     },
 
     restoreMany: (ids: string[]) => {
-        return api.patch<{ success: boolean; restoredCount: number; restoredIds: string[] }>('/products/batch/restore', {
-            body: JSON.stringify({ ids }),
-        });
+        console.log('📦 restoreMany - IDs:', ids);
+        return api.put<{ success: boolean; restoredCount: number; restoredIds: string[] }>(
+            '/products/batch/restore',
+            { ids } // ← Envia como objeto, não como string
+        );
     },
 
     deleteManyPermanent: (ids: string[]) => {

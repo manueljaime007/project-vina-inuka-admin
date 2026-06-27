@@ -6,6 +6,8 @@ export async function DELETE(request: NextRequest) {
     try {
         const token = request.cookies.get('token')?.value;
 
+        console.log('🔑 DELETE Permanent Batch - Token:', token ? '✅ Existe' : '❌ Não existe');
+
         if (!token) {
             return NextResponse.json(
                 { error: 'Não autorizado' },
@@ -22,6 +24,8 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
+        console.log('📦 DELETE Permanent Batch - IDs:', body.ids);
+
         const response = await fetch(`${BACKEND_URL}/products/batch/permanent`, {
             method: 'DELETE',
             headers: {
@@ -35,15 +39,17 @@ export async function DELETE(request: NextRequest) {
         const data = await response.json();
 
         if (!response.ok) {
+            console.error('❌ DELETE Permanent Batch - Erro:', data);
             return NextResponse.json(
                 { error: data.error || 'Erro ao eliminar produtos permanentemente' },
                 { status: response.status }
             );
         }
 
+        console.log('✅ DELETE Permanent Batch - Sucesso:', data);
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Erro ao eliminar produtos permanentemente em massa:', error);
+        console.error('❌ DELETE Permanent Batch - Erro:', error);
         return NextResponse.json(
             { error: 'Erro interno do servidor' },
             { status: 500 }

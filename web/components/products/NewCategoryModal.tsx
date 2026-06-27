@@ -8,10 +8,14 @@ import { Input } from "@/components/ui/Input";
 interface NewCategoryModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (name: string) => void;
+  onCreate: (name: string) => Promise<void> | void; // ← Pode ser async
 }
 
-export function NewCategoryModal({ open, onClose, onCreate }: NewCategoryModalProps) {
+export function NewCategoryModal({
+  open,
+  onClose,
+  onCreate,
+}: NewCategoryModalProps) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,17 +26,21 @@ export function NewCategoryModal({ open, onClose, onCreate }: NewCategoryModalPr
     onClose();
   }
 
-  function handleSave() {
+  async function handleSave() {
+    // ← async
     if (!name.trim()) {
       setError("Dê um nome à categoria.");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await onCreate(name.trim());
+      // O modal fecha no componente pai após sucesso
+    } catch (err) {
+      setError("Erro ao criar categoria");
+    } finally {
       setLoading(false);
-      onCreate(name.trim());
-      handleClose();
-    }, 450);
+    }
   }
 
   return (
