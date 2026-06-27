@@ -9,6 +9,7 @@ import productsRoutes from '@/routes/api/products.routes';
 import categoriesRoutes from '@/routes/api/categories.routes';
 import requestsRoutes from '@/routes/api/requests.routes';
 import authRoutes from '@/routes/auth/auth.routes';
+import dashboardRoutes from '@/routes/api/dashboard.routes';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productsRoutes);
 app.use('/api/v1/product-categories', categoriesRoutes);
 app.use('/api/v1/requests', requestsRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);   
 
 // Error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
