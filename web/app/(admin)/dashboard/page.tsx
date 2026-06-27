@@ -1,138 +1,211 @@
-import Link from "next/link";
-import { ArrowRight, Package, Tag, Inbox, TrendingUp } from "lucide-react";
-import { categories, clientRequests, products } from "@/shared/data/mock-data";
-import { formatCurrencyKz, formatDateTime } from "@/shared/helpers/utils";
-import { Badge } from "@/components/ui/Badge";
+"use client";
 
-const statusMeta = {
-  pendente: { label: "Pendente", tone: "warning" as const },
-  em_processamento: { label: "Em processamento", tone: "info" as const },
-  concluida: { label: "Concluída", tone: "success" as const },
-  cancelada: { label: "Cancelada", tone: "danger" as const },
+import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
+import {
+  Package,
+  Tag,
+  Inbox,
+  TrendingUp,
+  ArrowRight,
+  Clock,
+} from "lucide-react";
+import { useDashboard } from "@/hooks/useDashboard";
+import { RequestStatusBadge } from "@/components/requests/RequestStatusBadge";
+import { formatCurrencyKz, formatDateTime } from "@/shared/helpers/utils";
+import { cn } from "@/shared/helpers/utils";
+
+const statusMap = {
+  pending: { label: "Pendente", className: "bg-warning-bg text-warning-ink" },
+  completed: {
+    label: "Concluída",
+    className: "bg-success-bg text-success-ink",
+  },
+  cancelled: { label: "Cancelada", className: "bg-danger-bg text-danger" },
 };
 
 export default function DashboardPage() {
-  const pendingRequests = clientRequests.filter(
-    (r) => r.status === "pendente",
-  ).length;
-  const completedRevenue = clientRequests
-    .filter((r) => r.status === "concluida")
-    .reduce((sum, r) => sum + r.total, 0);
+  const { user } = useAuthStore();
+  const { stats, loading, error } = useDashboard();
 
-  const stats = [
-    {
-      href: "/products",
-      icon: Package,
-      value: products.length,
-      label: "Produtos",
-    },
-    {
-      href: "/categories",
-      icon: Tag,
-      value: categories.length,
-      label: "Categorias",
-    },
-    {
-      href: "/requests",
-      icon: Inbox,
-      value: clientRequests.length,
-      label: "Solicitações",
-      sub: pendingRequests > 0 ? `${pendingRequests} pendentes` : undefined,
-    },
-    {
-      href: "/requests",
-      icon: TrendingUp,
-      value: `${formatCurrencyKz(completedRevenue)} Kz`,
-      label: "Receita concluída",
-    },
-  ];
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
-  const hours = new Date().getHours();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
+  }
 
-  let greeting = "";
-
-  if (hours < 12) greeting = "Bom dia";
-  else if (hours < 18) greeting = "Boa tarde";
-  else greeting = "Boa noite";
+  if (error || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-ink-soft">Erro ao carregar dados do dashboard.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 text-brand-navy hover:underline"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Cabeçalho */}
       <div>
-        <div>
-          <h1 className="font-display text-[34px] text-ink">{greeting}!</h1>
-
-          <p className="mt-1 text-[15px] text-ink-soft">
-            Visão geral da sua loja.
-          </p>
-        </div>
+        <h1 className="font-display text-[28px] text-ink">
+          {greeting}, {user?.name?.split(" ")[0] || "Admin"}!
+        </h1>
+        <p className="mt-1 text-[15px] text-ink-soft">
+          Visão geral da sua loja.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="group flex flex-col gap-5 rounded-2xl border border-line-soft bg-surface p-6 shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-sunken text-ink-soft">
-                <stat.icon className="size-[18px]" strokeWidth={1.8} />
-              </span>
-              <ArrowRight className="size-4 text-ink-faint transition-transform group-hover:translate-x-0.5 group-hover:text-ink-soft" />
-            </div>
-            <div>
-              <p className="font-display text-3xl text-ink">{stat.value}</p>
-              <p className="mt-1 text-[14px] text-ink-soft">{stat.label}</p>
-              {stat.sub && (
-                <p className="mt-0.5 text-[13px] font-medium text-warning-ink">
-                  {stat.sub}
-                </p>
-              )}
-            </div>
-          </Link>
-        ))}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Package}
+          label="Produtos"
+          value={stats.products}
+          color="text-brand-rose-deep"
+          bg="bg-brand-blush"
+        />
+        <StatCard
+          icon={Tag}
+          label="Categorias"
+          value={stats.categories}
+          color="text-brand-navy"
+          bg="bg-surface-sunken"
+        />
+        <StatCard
+          icon={Inbox}
+          label="Solicitações"
+          value={stats.requests.total}
+          subtitle={`${stats.requests.pending} pendente${stats.requests.pending !== 1 ? "s" : ""}`}
+          color="text-info-ink"
+          bg="bg-info-bg"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Receita concluída"
+          value={stats.revenue}
+          color="text-success-ink"
+          bg="bg-success-bg"
+          prefix="Kz "
+          formatNumber
+        />
       </div>
 
-      <div className="rounded-2xl border border-line-soft bg-surface shadow-[var(--shadow-card)]">
-        <div className="flex items-center justify-between px-7 py-6">
-          <h2 className="font-display text-2xl text-ink">
+      {/* Solicitações recentes */}
+      <div className="rounded-2xl border border-line-soft bg-surface shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-line-soft">
+          <h2 className="text-[15px] font-semibold text-ink">
             Solicitações recentes
           </h2>
           <Link
             href="/requests"
-            className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft transition-colors hover:text-ink"
+            className="flex items-center gap-1.5 text-[13px] font-medium text-brand-navy hover:underline"
           >
-            Ver todas →
+            Ver todas
+            <ArrowRight className="size-4" strokeWidth={2} />
           </Link>
         </div>
+
         <div className="divide-y divide-line-soft">
-          {clientRequests.map((req) => {
-            const meta = statusMeta[req.status];
-            return (
-              <div
-                key={req.id}
-                className="flex items-center justify-between px-7 py-5"
-              >
-                <div>
-                  <p className="text-[15px] font-medium text-ink">
-                    {req.customerName}
-                  </p>
-                  <p className="mt-0.5 text-[13px] text-ink-faint">
-                    {formatDateTime(req.createdAt)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[15px] font-medium text-ink">
-                    {formatCurrencyKz(req.total)} Kz
-                  </p>
-                  <Badge tone={meta.tone} className="mt-1">
-                    {meta.label}
-                  </Badge>
-                </div>
-              </div>
-            );
-          })}
+          {stats.recentRequests.length === 0 ? (
+            <div className="px-6 py-8 text-center text-ink-faint">
+              Nenhuma solicitação recente
+            </div>
+          ) : (
+            stats.recentRequests.map((request) => {
+              const status = statusMap[request.status] || statusMap.pending;
+              return (
+                <Link
+                  key={request.id}
+                  href={`/requests/${request.id}`}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-6 py-4 transition-colors hover:bg-surface-sunken group"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-[14.5px] font-medium text-ink group-hover:underline">
+                      {request.customer_name}
+                    </span>
+                    <span className="text-[13px] text-ink-faint">
+                      {formatDateTime(request.created_at)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="text-[15px] font-semibold text-ink">
+                      {formatCurrencyKz(request.total)} Kz
+                    </span>
+                    <RequestStatusBadge status={request.status} />
+                  </div>
+                </Link>
+              );
+            })
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface StatCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+  color: string;
+  bg: string;
+  prefix?: string;
+  subtitle?: string;
+  formatNumber?: boolean;
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+  bg,
+  prefix = "",
+  subtitle,
+  formatNumber = false,
+}: StatCardProps) {
+  const formattedValue = formatNumber
+    ? new Intl.NumberFormat("pt-PT", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value)
+    : value;
+
+  return (
+    <div className="rounded-2xl border border-line-soft bg-surface px-5 py-4 shadow-[var(--shadow-card)]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className={cn(
+              "flex size-10 items-center justify-center rounded-xl",
+              bg,
+            )}
+          >
+            <Icon className={cn("size-5", color)} strokeWidth={1.8} />
+          </span>
+          <div>
+            <span className="text-[14px] text-ink-soft">{label}</span>
+            {subtitle && (
+              <p className="text-[12px] text-ink-faint">{subtitle}</p>
+            )}
+          </div>
+        </div>
+        <span className="text-[20px] font-semibold text-ink">
+          {prefix}
+          {formattedValue}
+        </span>
       </div>
     </div>
   );
